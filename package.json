@@ -1,0 +1,34 @@
+{
+  "name": "portfolio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/react-grid-layout": "^1.3.6",
+    "@types/three": "^0.184.1",
+    "ag-charts-community": "^10.3.3",
+    "ag-charts-react": "^10.3.3",
+    "ag-grid-community": "^32.3.4",
+    "ag-grid-react": "^32.3.4",
+    "d3": "^7.9.0",
+    "lucide-react": "^0.441.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-grid-layout": "^2.2.3",
+    "recharts": "^3.8.1",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4"
+  }
+}

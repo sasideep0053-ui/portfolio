@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+
+# env files — never commit, keep .env.example as the template
+.env
+.env.production
+.env.*.local
+backend/.env
+
+# python backend
+backend/.venv
+backend/__pycache__
+**/__pycache__
+backend/rag_db
+
+# claude project-local config
+.claude
+backend/.claude

@@ -1,0 +1,326 @@
+/* ─── Keyframes ───────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes heroVisualIn {
+  from { opacity: 0; transform: scale(0.92) translateY(16px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0)    scale(1);    }
+  33%      { transform: translate(28px, -22px) scale(1.04); }
+  66%      { transform: translate(-14px, 16px) scale(0.97); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0)    scale(1);    }
+  40%      { transform: translate(-22px, 26px) scale(1.05); }
+  70%      { transform: translate(18px, -12px) scale(0.96); }
+}
+@keyframes blobPulse {
+  0%, 100% { opacity: 0.8; }
+  50%      { opacity: 1;   }
+}
+@keyframes shimmerSlide {
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(300%)  skewX(-12deg); }
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ─── Hero: blobs float ───────────────────────── */
+.hero__blob--1 {
+  animation: float1 16s ease-in-out infinite, blobPulse 8s ease-in-out infinite;
+}
+.hero__blob--2 {
+  animation: float2 20s ease-in-out infinite reverse, blobPulse 10s ease-in-out 2s infinite;
+}
+
+/* ─── Hero: text appears when canvas fades to bg (~2.5s) ── */
+/* Elements start at opacity:0 (set in index.css).           */
+/* .hero__text--visible triggers the staggered entrance.     */
+.hero__text--visible .hero__eyebrow,
+.hero__text--visible .hero__greeting,
+.hero__text--visible .hero__name,
+.hero__text--visible .hero__tagline,
+.hero__text--visible .hero__actions,
+.hero__text--visible .hero__stats {
+  animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.hero__text--visible .hero__eyebrow  { animation-delay: 0.05s; }
+.hero__text--visible .hero__greeting { animation-delay: 0.10s; }
+.hero__text--visible .hero__name     { animation-delay: 0.22s; }
+.hero__text--visible .hero__tagline  { animation-delay: 0.34s; }
+.hero__text--visible .hero__actions  { animation-delay: 0.46s; }
+.hero__text--visible .hero__stats    { animation-delay: 0.58s; }
+
+/* ─── Hero: stat counter pop-in ───────────────── */
+.hero__text--visible .hero__stat-value {
+  display: inline-block;
+  animation: countUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.70s;
+}
+
+/* ─── Scroll progress bar ─────────────────────── */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; z-index: 200;
+  height: 2px; background: var(--accent);
+  transform-origin: left; will-change: width;
+  transition: width 0.06s linear;
+  pointer-events: none;
+}
+
+/* ─── Smooth theme transition ─────────────────── */
+.theme-root                { transition: background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+.navbar                    { transition: background 0.9s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+.hero__key, .hero__stack, .hero__clock,
+.hero__sep, .section__title,
+.scroll-progress, .btn--primary,
+.navbar__logo-avatar        { transition: background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1), color 0.9s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+.skill-card,
+.exp-card,
+.demo-card,
+.about__stat-card,
+.contact__link,
+.section--alt,
+.chat-window,
+.locale-dropdown,
+.a11y-table thead th,
+.a11y-table tbody tr       { transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), color 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ─── Apple-style fade-in: scale + blur + rise ── */
+/* Sections zoom in from slightly smaller as they enter the viewport */
+.fade-in {
+  opacity: 0;
+  transform: scale(0.96) translateY(28px);
+  filter: blur(4px);
+  transition:
+    opacity   0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    filter    0.6s ease;
+}
+.fade-in.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  filter: blur(0);
+}
+
+/* ─── Section title underline draw ───────────── */
+.section__title::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background: var(--accent);
+  width: 0;
+  margin-top: 10px;
+  border-radius: 2px;
+  transition: width 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+}
+.fade-in.visible .section__title::after { width: 40px; }
+
+/* ─── Card hover: lift + glow ─────────────────── */
+.skill-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease,
+              border-color 0.25s ease, background 0.25s ease;
+}
+.skill-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 0 1px var(--accent-dim), 0 20px 40px var(--accent-dim);
+  border-color: var(--accent-mid) !important;
+}
+.exp-card, .demo-card {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+.exp-card:hover  { box-shadow: 0 12px 40px var(--accent-dim); }
+.demo-card:hover { box-shadow: 0 12px 40px var(--accent-dim); }
+.about__stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.about__stat-card:hover {
+  box-shadow: 0 8px 24px var(--accent-dim);
+  border-color: var(--accent-dim) !important;
+}
+
+/* ─── Staggered: skill cards — zoom in ────────── */
+.skills__grid .skill-card {
+  opacity: 0;
+  transform: scale(0.90) translateY(20px);
+  filter: blur(2px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.4s ease,
+              box-shadow 0.25s ease,
+              border-color 0.25s ease, background 0.25s ease;
+}
+.skills__grid.visible .skill-card { opacity: 1; transform: scale(1) translateY(0); filter: none; }
+.skills__grid.visible .skill-card:nth-child(1) { transition-delay: 0ms;   }
+.skills__grid.visible .skill-card:nth-child(2) { transition-delay: 70ms;  }
+.skills__grid.visible .skill-card:nth-child(3) { transition-delay: 140ms; }
+.skills__grid.visible .skill-card:nth-child(4) { transition-delay: 210ms; }
+.skills__grid.visible .skill-card:nth-child(5) { transition-delay: 280ms; }
+
+/* ─── Staggered: experience cards — slide in ─── */
+.experience__list .exp-card {
+  opacity: 0;
+  transform: scale(0.97) translateX(-24px);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.experience__list.visible .exp-card              { opacity: 1; transform: scale(1) translateX(0); }
+.experience__list.visible .exp-card:nth-child(1) { transition-delay: 0ms;  }
+.experience__list.visible .exp-card:nth-child(2) { transition-delay: 100ms; }
+
+/* ─── Staggered: demo cards — zoom in ────────── */
+.showcase__demos .demo-card {
+  opacity: 0;
+  transform: scale(0.95) translateY(24px);
+  filter: blur(3px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.5s ease,
+              box-shadow 0.25s ease,
+              border-color 0.25s ease;
+}
+.showcase__demos.visible .demo-card              { opacity: 1; transform: scale(1) translateY(0); filter: none; }
+.showcase__demos.visible .demo-card:nth-child(1) { transition-delay: 0ms;   }
+.showcase__demos.visible .demo-card:nth-child(2) { transition-delay: 110ms; }
+.showcase__demos.visible .demo-card:nth-child(3) { transition-delay: 220ms; }
+.showcase__demos.visible .demo-card:nth-child(4) { transition-delay: 330ms; }
+
+/* ─── Button shimmer ──────────────────────────── */
+.btn { position: relative; overflow: hidden; }
+.btn::after {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: translateX(-150%) skewX(-12deg);
+}
+.btn:hover::after {
+  animation: shimmerSlide 0.55s ease forwards;
+}
+
+/* ─── Skill tag micro-lift ────────────────────── */
+.skill-tag {
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.skill-tag:hover { transform: translateY(-2px); background: var(--accent-mid); }
+
+/* ─── Contact link icon rotate ────────────────── */
+.contact__link .contact__link-icon {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.contact__link:hover .contact__link-icon { transform: scale(1.2) rotate(-8deg); }
+
+/* ─── Chat message entrance ───────────────────── */
+.chat-msg {
+  animation: msgIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Navbar logo ────────────────────────────── */
+.navbar__logo {
+  transition: opacity 0.15s;
+}
+.navbar__logo:hover {
+  opacity: 0.8;
+}
+
+/* ─── Demo tab active indicator ───────────────── */
+.demo-tab {
+  position: relative;
+}
+.demo-tab::after {
+  content: '';
+  position: absolute; bottom: 2px; left: 50%; right: 50%;
+  height: 2px; background: var(--accent); border-radius: 2px;
+  transition: left 0.22s ease, right 0.22s ease;
+}
+.demo-tab.active::after { left: 10px; right: 10px; }
+
+/* ─── Locale dropdown: fade-slide ────────────── */
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.locale-dropdown {
+  animation: dropIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Per-theme scroll entry animations ──────────────── */
+
+/* AOT: slide in from left — tactical advance */
+.theme-root[data-color="aot"] .fade-in { transform: translateX(-36px); filter: none; }
+.theme-root[data-color="aot"] .fade-in.visible { transform: translateX(0); }
+
+/* Demon Slayer: sweep from right */
+.theme-root[data-color="demonslayer"] .fade-in { transform: translateX(36px); filter: none; }
+.theme-root[data-color="demonslayer"] .fade-in.visible { transform: translateX(0); }
+
+/* JJK: cursed energy scale snap */
+.theme-root[data-color="jjk"] .fade-in { transform: scale(0.88); filter: blur(8px); transition-duration: 0.45s; }
+.theme-root[data-color="jjk"] .fade-in.visible { transform: scale(1); filter: blur(0); }
+
+/* ATLA: float down from above — airbender drift */
+.theme-root[data-color="atla"] .fade-in { transform: translateY(-28px); filter: none; }
+.theme-root[data-color="atla"] .fade-in.visible { transform: translateY(0); }
+
+/* HxH: Nen burst — fast snap */
+.theme-root[data-color="hxh"] .fade-in { transform: scale(0.94) translateY(20px); filter: none; transition-duration: 0.28s; }
+.theme-root[data-color="hxh"] .fade-in.visible { transform: scale(1) translateY(0); }
+
+/* Black Clover: rise with magic tilt */
+.theme-root[data-color="blackclover"] .fade-in { transform: scale(0.93) translateY(22px) rotate(-0.8deg); filter: none; }
+.theme-root[data-color="blackclover"] .fade-in.visible { transform: scale(1) translateY(0) rotate(0deg); }
+
+/* ─── Per-theme card hover effects ───────────────────── */
+
+/* AOT: slide right — advancing soldier */
+.theme-root[data-color="aot"] .skill-card:hover,
+.theme-root[data-color="aot"] .exp-card:hover,
+.theme-root[data-color="aot"] .demo-card:hover {
+  transform: translateX(6px);
+  box-shadow: -6px 0 20px rgba(220,38,38,0.15), 0 0 0 1px rgba(220,38,38,0.28);
+}
+
+/* Black Clover: golden magic surge */
+.theme-root[data-color="blackclover"] .skill-card:hover {
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.4), 0 0 28px rgba(245,158,11,0.2);
+}
+.theme-root[data-color="blackclover"] .exp-card:hover,
+.theme-root[data-color="blackclover"] .demo-card:hover { box-shadow: 0 12px 32px rgba(245,158,11,0.12); }
+
+/* Demon Slayer: water breathing sweep */
+.theme-root[data-color="demonslayer"] .skill-card:hover {
+  box-shadow: 0 0 0 1px rgba(219,39,119,0.4), 0 8px 28px rgba(219,39,119,0.15);
+}
+.theme-root[data-color="demonslayer"] .exp-card:hover,
+.theme-root[data-color="demonslayer"] .demo-card:hover { box-shadow: 0 12px 32px rgba(219,39,119,0.10); }
+
+/* JJK: cursed technique shadow */
+.theme-root[data-color="jjk"] .skill-card:hover {
+  box-shadow: 0 0 0 1px rgba(129,140,248,0.4), 0 20px 40px rgba(129,140,248,0.15),
+              inset 0 0 12px rgba(129,140,248,0.06);
+}
+.theme-root[data-color="jjk"] .exp-card:hover,
+.theme-root[data-color="jjk"] .demo-card:hover { box-shadow: 0 12px 32px rgba(129,140,248,0.12); }
+
+/* ATLA: element bending aura */
+.theme-root[data-color="atla"] .skill-card:hover {
+  box-shadow: 0 0 0 1px rgba(56,189,248,0.35), 0 0 32px rgba(56,189,248,0.14);
+}
+.theme-root[data-color="atla"] .exp-card:hover,
+.theme-root[data-color="atla"] .demo-card:hover { box-shadow: 0 12px 32px rgba(56,189,248,0.10); }
+
+/* HxH: Nen electric snap — short transition */
+.theme-root[data-color="hxh"] .skill-card { transition-duration: 0.12s; }
+.theme-root[data-color="hxh"] .skill-card:hover {
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: 0 0 0 1px rgba(22,163,74,0.45), 0 0 22px rgba(22,163,74,0.18);
+}
