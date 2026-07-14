@@ -27,8 +27,18 @@ export default function Navbar() {
   const [progress,     setProgress]    = useState(0)
   const [toastLines,   setToastLines]  = useState<string[]>([])
   const [toastVisible, setToastVisible] = useState(false)
+  const [controlsSeen, setControlsSeen] = useState(
+    () => localStorage.getItem('controlsSeen') === '1'
+  )
   const toastTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lineTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const markControlsSeen = () => {
+    if (!controlsSeen) {
+      localStorage.setItem('controlsSeen', '1')
+      setControlsSeen(true)
+    }
+  }
 
   const paletteRef    = useRef<HTMLDivElement>(null)
   const consoleBtnRef = useRef<HTMLButtonElement>(null)
@@ -91,7 +101,7 @@ export default function Navbar() {
             className={`locale-btn navbar__lab-btn${isLab ? ' active' : ''}`}
             onClick={() => isLab ? navigate('/') : navigate('/lab')}
             aria-label={isLab ? 'Back to portfolio' : 'Open Lab'}
-            title={isLab ? 'Back to portfolio' : 'Open Lab'}
+            data-tooltip={isLab ? 'Back to portfolio' : 'Open engineering lab'}
           >
             <FlaskConical size={14} aria-hidden="true" />
           </button>
@@ -103,7 +113,7 @@ export default function Navbar() {
             onClick={() => setConsoleOpen(o => !o)}
             aria-pressed={consoleOpen}
             aria-label="Toggle system console"
-            title="System console"
+            data-tooltip="Open dev console"
           >
             <Terminal size={14} aria-hidden="true" />
           </button>
@@ -124,12 +134,12 @@ export default function Navbar() {
           {/* Color theme picker */}
           <div className="navbar__locale" ref={paletteRef}>
             <button
-              className="locale-btn"
-              onClick={() => setPaletteOpen(o => !o)}
+              className={`locale-btn${!controlsSeen ? ' locale-btn--attn' : ''}`}
+              onClick={() => { setPaletteOpen(o => !o); markControlsSeen() }}
               aria-haspopup="listbox"
               aria-expanded={paletteOpen}
               aria-label={`Color theme: ${COLOR_THEMES[colorTheme].name}`}
-              title="Color theme"
+              data-tooltip={controlsSeen ? 'Switch color theme' : undefined}
             >
               <Palette size={14} aria-hidden="true" />
               <span
@@ -142,6 +152,12 @@ export default function Navbar() {
               />
               <ChevronDown size={12} aria-hidden="true" className={paletteOpen ? 'rotated' : ''} />
             </button>
+            {!isLab && !consoleOpen && !paletteOpen && !controlsSeen && (
+              <div className="controls-callout" aria-hidden="true">
+                <span className="controls-callout__arrow">↑</span>
+                <span>theme — try me</span>
+              </div>
+            )}
             {paletteOpen && (
               <ul className="locale-dropdown palette-dropdown" role="listbox" aria-label="Select color theme">
                 {COLOR_KEYS.map(key => (
@@ -208,18 +224,6 @@ export default function Navbar() {
         {toastLines.map((line, i) => (
           <div key={i} className="theme-toast__line">{line}</div>
         ))}
-      </div>
-    )}
-    {!isLab && !consoleOpen && (
-      <div className="hints-group" aria-hidden="true">
-        <div className={`hints-item${toastVisible ? ' hints-item--hidden' : ''}`} style={{ animationDelay: '1.0s' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>&gt;_</span>
-          <span>// open dev console</span>
-        </div>
-        <div className={`hints-item${toastVisible ? ' hints-item--hidden' : ''}`} style={{ animationDelay: '1.2s' }}>
-          <span style={{ fontSize: '0.75rem' }} aria-hidden="true">🎨</span>
-          <span>// inject --color-theme: &lt;your_vibe&gt;</span>
-        </div>
       </div>
     )}
     </>

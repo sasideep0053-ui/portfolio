@@ -40,8 +40,8 @@ export default function DevConsole({ open, onClose }: { open: boolean; onClose: 
             ref={closeRef}
             className="dev-console__btn dev-console__btn--close"
             onClick={onClose}
-            title="Close console"
             aria-label="Close console"
+            data-tooltip="Close console"
           >
             ✕
           </button>

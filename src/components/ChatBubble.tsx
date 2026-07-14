@@ -280,6 +280,7 @@ export default function ChatBubble() {
         onClick={() => setOpen(o => !o)}
         aria-label={open ? 'Close assistant' : 'Ask about Sasi'}
         aria-expanded={open}
+        data-tooltip={open ? 'Close chat' : 'Ask Sasi’s AI assistant'}
         style={{
           background: 'var(--surface)',
           border:     `1px solid ${open ? accent : accent + '55'}`,

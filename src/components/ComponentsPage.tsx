@@ -130,7 +130,7 @@ export default function ComponentsPage() {
             className="lab-close"
             onClick={() => navigate('/')}
             aria-label="Close"
-            title="Back to portfolio"
+            data-tooltip="Back to portfolio"
           >
             <X size={13} />
           </button>
