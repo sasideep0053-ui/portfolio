@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import os
 import time
 from collections import defaultdict
-from typing import Generator
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter()
 
@@ -100,6 +102,20 @@ def _get_resources():
     return _collection, _bm25, _reranker, _embedder
 
 
+# Guards against two concurrent cold requests both triggering _load_index() —
+# doubling the embedder+reranker load at once is exactly the scenario that
+# tips the free-tier container into OOM.
+_load_lock = asyncio.Lock()
+
+
+async def _get_resources_async():
+    if _collection is None:
+        async with _load_lock:
+            if _collection is None:
+                await run_in_threadpool(_load_index)
+    return _collection, _bm25, _reranker, _embedder
+
+
 # ── SSE helpers ───────────────────────────────────────────────────────────────
 def _step(phase: str, msg: str, detail: str = '') -> str:
     """Emit a pipeline trace event the UI renders as a live step."""
@@ -180,16 +196,18 @@ _PROMPTS = {
 
 
 # ── Full streaming pipeline ───────────────────────────────────────────────────
-def _stream(question: str, doc_source: str) -> Generator[str, None, None]:
-    collection, bm25, _, embedder = _get_resources()
+async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
+    collection, bm25, _, embedder = await _get_resources_async()
 
     # ── Step 1: Embed the question ────────────────────────────────────────────
     yield _step('embed', f'Embedding question', f'model: {EMBED_MODEL}')
-    query_emb = embedder.encode(question, normalize_embeddings=True).tolist()
+    embedding = await run_in_threadpool(embedder.encode, question, normalize_embeddings=True)
+    query_emb = embedding.tolist()
 
     # ── Step 2: Vector search ─────────────────────────────────────────────────
     yield _step('vector', f'Vector search', f'over {doc_source} index')
-    vec_results = collection.query(
+    vec_results = await run_in_threadpool(
+        collection.query,
         query_embeddings=[query_emb],
         n_results=RETRIEVE_K,
         where={'doc_source': doc_source},
@@ -226,7 +244,7 @@ def _stream(question: str, doc_source: str) -> Generator[str, None, None]:
     id_to_meta = dict(zip(_all_ids, _all_metas))
     candidates = merged[:RERANK_K]
 
-    reranked_ids, reranked_confs = _rerank_chunks(question, candidates, id_to_doc)
+    reranked_ids, reranked_confs = await run_in_threadpool(_rerank_chunks, question, candidates, id_to_doc)
 
     top5_detail = '  |  '.join(
         f'{id_to_meta[cid]["source"]} {conf:.2f}'
@@ -278,15 +296,15 @@ def _stream(question: str, doc_source: str) -> Generator[str, None, None]:
     prompt  = f'{system}\n\nContext:\n{context}\n\nQuestion: {question}\nAnswer:'
 
     try:
-        from groq import Groq
-        client = Groq(api_key=api_key)
-        stream = client.chat.completions.create(
+        from groq import AsyncGroq
+        client = AsyncGroq(api_key=api_key)
+        stream = await client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[{'role': 'user', 'content': prompt}],
             max_tokens=600,
             stream=True,
         )
-        for chunk in stream:
+        async for chunk in stream:
             token = chunk.choices[0].delta.content or ''
             for ch in token:
                 yield f'data: {json.dumps(ch)}\n\n'
