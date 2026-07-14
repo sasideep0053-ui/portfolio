@@ -122,9 +122,11 @@ export default function App() {
           <NavigationProvider>
             <ConsoleProvider>
               <AppRoutes />
-              <ErrorBoundary colorTheme="default">
-                <ChatBubble />
-              </ErrorBoundary>
+              {import.meta.env.DEV && (
+                <ErrorBoundary colorTheme="default">
+                  <ChatBubble />
+                </ErrorBoundary>
+              )}
             </ConsoleProvider>
           </NavigationProvider>
         </LocaleProvider>
