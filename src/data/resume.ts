@@ -1,15 +1,19 @@
 export const RESUME = {
   name: 'Sasideep Kakumani',
   initials: 'SK',
-  title: 'Frontend Engineer · Data Visualization & Analytics',
-  subtitle: 'Real-Time Systems · Enterprise UI · Accessibility',
+  title: 'Frontend Engineer · AI & Real-Time Systems',
+  subtitle: 'AI/LLM Products · Hardware-Adjacent UI · Accessibility',
   location: 'Bay Area, CA',
   timezone: 'PT (UTC−8)',
   email: 'sasideep.sd53@gmail.com',
   phone: '(510) 320-4310',
-  resumePdf: '/resume.pdf',
+  portfolio: 'sasideep.com',
+  github: 'https://github.com/sasideep0053-ui/portfolio',
+  resumePdf: '/Sasideep-Kakumani-Frontend-Engineer.pdf',
 
-  stack: ['React', 'TypeScript', 'Data Visualization', 'Python', 'SQL'],
+  summary: 'Frontend engineer with 10+ years building high-scale enterprise UIs at Apple — now focused on AI product interfaces and hardware-adjacent UI: real-time LLM streaming, RAG retrieval, and control-loop visualization (PID, sensor telemetry), backed by a decade of dashboard work for 60,000+ daily users.',
+
+  stack: ['React', 'TypeScript', 'LLM Integration', 'RAG', 'Real-Time Systems', 'Three.js / WebGL'],
 
   stats: [
     { value: '10+', label: 'Years Experience' },
@@ -19,14 +23,19 @@ export const RESUME = {
 
   builds: [
     {
-      title: 'Report Studio',
-      tag: 'Dashboard Builder',
-      line: 'Drag-and-resize dashboard builder — now embedded across multiple internal teams.',
+      title: 'Docs RAG Assistant',
+      tag: 'RAG · ChromaDB · Cross-Encoder · Groq',
+      line: 'Hybrid vector + keyword retrieval with cross-encoder reranking and confidence-gated LLM generation — live pipeline trace shows every stage as it runs.',
     },
     {
-      title: 'AI Assistant Pilot',
-      tag: 'LLM · Real-Time',
-      line: 'Internal pilot with real-time LLM token streaming over SSE, integrated into the analytics platform.',
+      title: 'Drone PID Controller',
+      tag: 'Control Theory · Physics Engine',
+      line: 'Full proportional-integral-derivative control loop with real-time physics simulation, the same class of algorithm used in flight controllers and autonomous vehicles.',
+    },
+    {
+      title: 'Report Studio',
+      tag: 'Dashboard Builder',
+      line: 'Drag-and-resize dashboard builder — now embedded across multiple internal teams at Apple.',
     },
   ],
 
@@ -34,51 +43,12 @@ export const RESUME = {
     {
       level: 'Core Skillset',
       description: '',
-      items: ['TypeScript', 'React', 'Redux Toolkit', 'D3.js', 'AG Grid', 'CSS / LESS / SASS', 'Tailwind', 'Canvas 2D', 'SSE', 'Vite', 'Accessibility', 'Playwright', 'Jest'],
+      items: ['TypeScript', 'React', 'LLM Integration', 'RAG', 'WebSocket', 'SSE', 'Three.js / WebGL', 'Redux Toolkit', 'D3.js', 'AG Grid', 'Canvas 2D', 'CSS / LESS / SASS', 'Tailwind', 'Vite', 'Accessibility', 'Playwright', 'Jest'],
     },
     {
       level: 'Also worked with',
       description: '',
-      items: ['Python', 'FastAPI', 'Java', 'Spring Boot', 'SQL', 'Snowflake', 'Oracle', 'Splunk', 'Tableau', 'AWS', 'Docker', 'Kubernetes', 'Redis'],
-    },
-  ],
-
-  // kept for reference, not rendered
-  skills: [
-    {
-      category: 'UX Process',
-      color: 'teal',
-      items: ['User Interviews', 'Personas', 'Wireframing', 'Prototyping', 'Usability Testing', 'Iterative Design', 'Sketch', 'Miro'],
-    },
-    {
-      category: 'Frontend',
-      color: 'blue',
-      items: ['React', 'Redux Toolkit', 'TypeScript', 'D3.js', 'AG Grid', 'Vite', 'CSS / LESS / SASS', 'Tailwind'],
-    },
-    {
-      category: 'Cloud & DevOps',
-      color: 'orange',
-      items: ['AWS', 'Docker', 'Kubernetes'],
-    },
-    {
-      category: 'Backend',
-      color: 'orange',
-      items: ['Java', 'Spring Boot', 'Python', 'LLM / SSE', 'REST APIs'],
-    },
-    {
-      category: 'Testing & Quality',
-      color: 'green',
-      items: ['Playwright', 'Cypress', 'Jest', 'JUnit', 'Mockito', 'JMeter', 'SonarQube'],
-    },
-    {
-      category: 'Data & Monitoring',
-      color: 'purple',
-      items: ['Snowflake', 'Oracle', 'SingleStore', 'Redis', 'Splunk', 'Tableau'],
-    },
-    {
-      category: 'Security',
-      color: 'red',
-      items: ['RBAC', 'OAuth 2.0 / JWT', 'XSS Prevention', 'CSRF / SQLi Prevention', 'CSP'],
+      items: ['Python', 'FastAPI', 'PID Control', 'Physics Simulation', 'Java', 'Spring Boot', 'SQL', 'Snowflake', 'Oracle', 'Splunk', 'Tableau', 'AWS', 'Docker', 'Kubernetes', 'Redis'],
     },
   ],
 
@@ -91,12 +61,12 @@ export const RESUME = {
       current: true,
       summary: '',
       bullets: [
-        'Built and shipped 10+ web apps for Apple\'s internal analytics platform, used daily by 60,000+ users across operations — owning the full arc from UX research and prototyping through to production.',
-        'Built Report Studio, a drag-and-resize dashboard builder now embedded across multiple internal teams.',
-        'Led an AI assistant pilot with real-time LLM token streaming over SSE, integrated directly into the analytics platform.',
-        'Maintained WCAG AA accessibility across all 10 applications — audited, tested with screen readers, and enforced through Playwright automated checks.',
+        'Led a conversational AI assistant pilot for a targeted 5,000-user internal rollout — built the streaming chat UI with real-time LLM token rendering over SSE, end to end.',
+        'Shipped 10+ web apps for Apple\'s internal analytics platform, used daily by 60,000+ users across operations — replacing manual reporting workflows and shortening the path from data to decision, while owning the full arc from requirements gathering through production.',
+        'Delivered Report Studio, a drag-and-resize dashboard builder now embedded across multiple internal teams, plus custom D3.js and AG Grid visualizations for complex data drill-downs.',
+        'Architected the Admin Health Module, a real-time dashboard tracking 20+ KPIs, and served as primary liaison across Support, DevOps, and Database teams on infrastructure and data integrity.',
       ],
-      tags: ['React', 'TypeScript', 'D3.js', 'AG Grid', 'Redux Toolkit', 'Splunk', 'Playwright', 'SSE'],
+      tags: ['React', 'TypeScript', 'LLM / SSE', 'D3.js', 'AG Grid', 'Redux Toolkit', 'Playwright'],
     },
     {
       company: 'Apple Inc.',
@@ -106,11 +76,11 @@ export const RESUME = {
       current: false,
       summary: '',
       bullets: [
-        'Built reusable enterprise UI primitives used across multiple internal teams.',
-        'Built the Admin Health Module — a real-time dashboard tracking 20+ KPIs.',
+        'Delivered enterprise UI components for internal Apple tools with a focus on UX quality and performance.',
         'Migrated the CSAT platform from a legacy Flash-based app to React, validated with multiple rounds of user interviews.',
+        'Integrated automated test suites (Cypress/Playwright) to protect critical user journeys and reduce regressions.',
       ],
-      tags: ['React', 'Redux', 'TypeScript', 'CSS/LESS', 'JMeter', 'Playwright'],
+      tags: ['React', 'Redux', 'TypeScript', 'CSS/LESS', 'Cypress', 'Playwright'],
     },
     {
       company: 'Tata Consultancy Services',
@@ -121,9 +91,15 @@ export const RESUME = {
       summary: '',
       bullets: [
         'Built frontend POCs for enterprise insurance, geospatial risk mapping, and actuarial loss analysis.',
-        'Co-designed an early telematics driving risk concept — the precursor to the Drive Score Simulator in this portfolio.',
+        'Co-designed an early telematics driving risk concept — later revisited independently as a full driving-risk simulator (WebSocket + physics engine).',
       ],
-      tags: ['HTML', 'CSS', 'jQuery', 'Bootstrap', 'Flash', 'Geospatial APIs'],
+      tags: ['HTML', 'CSS', 'jQuery', 'Bootstrap', 'Geospatial APIs'],
     },
+  ],
+
+  education: [
+    { degree: 'M.S. Software Engineering' },
+    { degree: 'M.S. Computer Science' },
+    { degree: 'B.Tech, Electronics & Communications Engineering' },
   ],
 } as const
