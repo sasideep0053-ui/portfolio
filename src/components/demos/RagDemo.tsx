@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme, COLOR_THEMES } from '../../contexts/ThemeContext'
 import { devLog } from '../../lib/devLog'
+import { API_HTTP_BASE } from '../../lib/apiConfig'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type DocSource = 'react' | 'typescript' | 'vite' | 'fastapi'
@@ -483,8 +484,6 @@ const HOW_IT_WORKS = `// ── WHY hybrid chunking? ─────────
 // don't break the SSE delimiter — the UI typewriter stays in sync.`
 
 // ── Main component ────────────────────────────────────────────────────────────
-const BACKEND = 'http://localhost:8000'
-
 export default function RagDemo() {
   const { colorTheme } = useTheme()
   const accent = COLOR_THEMES[colorTheme].accent
@@ -585,7 +584,7 @@ export default function RagDemo() {
     ])
 
     try {
-      const res = await fetch(`${BACKEND}/api/rag/query/stream`, {
+      const res = await fetch(`${API_HTTP_BASE}/api/rag/query/stream`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ question, doc_source: docSource }),
