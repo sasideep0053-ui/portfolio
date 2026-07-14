@@ -607,7 +607,7 @@ export default function MatrixPortrait({
         const o=off.getContext('2d')!; o.drawImage(canvas,0,0,width,height,0,0,cols,rows)
         px=o.getImageData(0,0,cols,rows).data; return
       }
-      const image = new Image(); image.crossOrigin='anonymous'
+      const image = new Image()
       image.onload = () => {
         img = image
         const scale = Math.max(width/img.width, height/img.height)
