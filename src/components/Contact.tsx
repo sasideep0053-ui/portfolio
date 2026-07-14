@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mail, MapPin, Clock, Download } from 'lucide-react'
+import { Mail, MapPin, Clock, Download, Github, Globe } from 'lucide-react'
 import { useLocale } from '../contexts/LocaleContext'
 import { RESUME } from '../data/resume'
 import { useNavSection } from '../hooks/useNavSection'
@@ -65,6 +65,28 @@ export default function Contact() {
               <Clock size={13} aria-hidden="true" style={{ flexShrink: 0 }} />
               {RESUME.timezone}
             </span>
+            <span className="contact__meta-sep" aria-hidden="true">//</span>
+            <a
+              href={`https://${RESUME.portfolio}`}
+              className="contact__meta-item contact__meta-item--link"
+              role="listitem"
+              aria-label={`Portfolio ${RESUME.portfolio}`}
+            >
+              <Globe size={13} aria-hidden="true" style={{ flexShrink: 0 }} />
+              {RESUME.portfolio}
+            </a>
+            <span className="contact__meta-sep" aria-hidden="true">//</span>
+            <a
+              href={RESUME.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="contact__meta-item contact__meta-item--link"
+              role="listitem"
+              aria-label="GitHub"
+            >
+              <Github size={13} aria-hidden="true" style={{ flexShrink: 0 }} />
+              GitHub
+            </a>
           </div>
 
           <a
