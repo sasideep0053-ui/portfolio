@@ -8,7 +8,10 @@ RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH \
-    HF_HOME=/home/user/.cache/huggingface
+    HF_HOME=/home/user/.cache/huggingface \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    TOKENIZERS_PARALLELISM=false
 
 WORKDIR /home/user/app
 
