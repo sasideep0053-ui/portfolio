@@ -14,7 +14,6 @@ backend/.env
 backend/.venv
 backend/__pycache__
 **/__pycache__
-backend/rag_db
 
 # claude project-local config
 .claude
