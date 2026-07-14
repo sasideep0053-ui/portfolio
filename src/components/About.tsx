@@ -41,21 +41,24 @@ export default function About() {
         <div className="about__grid">
           <div className="about__text">
             <p>
-              Data-dense interfaces that have to be right, accessible, and
-              built to last — analytics dashboards, real-time data pipelines,
-              custom chart systems. Ten years across enterprise tooling,
-              insurance analytics, and internal platforms at Apple.
+              Ten years building dashboards, analytics platforms, and
+              enterprise tooling at Apple — data-dense interfaces that
+              have to be right and accessible. Now applying that same
+              rigor to AI products with streaming chat UX and RAG-backed
+              retrieval, and to hardware-adjacent systems with live
+              sensor telemetry and control-loop visualization.
             </p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '1rem 0 0', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <ul className="about__list">
               {[
-                { accent: true,  text: 'Full ownership — UX research, prototyping, architecture, and production.' },
-                { accent: true,  text: 'Accessibility as a hard constraint: WCAG AA, keyboard nav, screen reader tested.' },
-                { accent: false, text: 'Real-time systems: WebSocket, SSE, LLM token streaming, live telemetry.' },
-              ].map(({ text, accent }) => (
-                <li key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
-                  <span style={{ marginTop: '0.3rem', width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                    background: accent ? 'var(--accent)' : 'var(--text-3)' }} aria-hidden="true" />
-                  <span style={{ fontSize: '1rem', color: 'var(--text-2)', lineHeight: 1.6 }}>{text}</span>
+                'Real-time AI interfaces: LLM token streaming over SSE, RAG-backed retrieval UIs, conversational UX.',
+                'Hardware-adjacent UI: physics simulation, control-loop visualization (PID, G-force telemetry), sensor-driven dashboards.',
+                'Full ownership — UX research, prototyping, architecture, and production.',
+                'Accessibility as a hard constraint: WCAG AA, keyboard nav, screen reader tested.',
+                'Outside of work: independently built and shipped FictaNode, an interactive fiction reading platform with puzzle-gated chapter progression, archetype badges, accounts, and payments, as a hobby.',
+              ].map(text => (
+                <li key={text} className="about__list-item">
+                  <span className="about__list-dot" aria-hidden="true" />
+                  <span className="about__list-text">{text}</span>
                 </li>
               ))}
             </ul>
