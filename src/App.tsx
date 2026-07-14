@@ -11,7 +11,6 @@ import ScrollNav from './components/ScrollNav'
 import Hero from './components/Hero'
 import About from './components/About'
 import Skills from './components/Skills'
-import Experience from './components/Experience'
 import EngineeringLab from './components/EngineeringLab'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
@@ -62,7 +61,7 @@ function AppRoutes() {
           ? `Dashboard Builder — UI Toolkit — ${base}`
           : `UI Toolkit — ${base}`
     } else {
-      document.title = `${base} — Senior Full-Stack Engineer`
+      document.title = `${base} — Frontend Engineer, AI & Real-Time Systems`
     }
   }, [path])
 
@@ -105,7 +104,6 @@ function AppRoutes() {
           <Hero />
           <About />
           <Skills />
-          <Experience />
           <EngineeringLab />
           <Contact />
         </main>

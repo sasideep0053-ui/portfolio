@@ -3,20 +3,20 @@ import { useRouter } from '../contexts/RouterContext'
 import { useNavSection } from '../hooks/useNavSection'
 
 const EXPERIMENTS = [
-  { id: 'speech',      title: 'Speech Visualizer',        subtitle: 'Web Audio API · Whisper · Canvas'             },
-  { id: 'drive-score', title: 'Drive Score Simulator',    subtitle: 'WebSocket · FastAPI · Physics Engine'         },
-  { id: 'galton',      title: 'Galton Board',             subtitle: 'Probability · Canvas 2D · Binomial Stats'     },
-  { id: 'drone',       title: 'Drone PID Controller',     subtitle: 'PID Control · Canvas 2D · WebSocket'          },
-  { id: 'reco',        title: 'Recommendation Engine',    subtitle: 'User-Based Recommendations · KNN · TypeScript'   },
   { id: 'rag',         title: 'Docs RAG Assistant',       subtitle: 'RAG · ChromaDB · BM25 · Cross-Encoder · Groq'    },
+  { id: 'speech',      title: 'Speech Visualizer',        subtitle: 'Web Audio API · Whisper · Canvas'             },
+  { id: 'reco',        title: 'Recommendation Engine',    subtitle: 'User-Based Recommendations · KNN · TypeScript'   },
+  { id: 'drive-score', title: 'Drive Score Simulator',    subtitle: 'WebSocket · FastAPI · Physics Engine'         },
+  { id: 'drone',       title: 'Drone PID Controller',     subtitle: 'PID Control · Canvas 2D · WebSocket'          },
+  { id: 'galton',      title: 'Galton Board',             subtitle: 'Probability · Canvas 2D · Binomial Stats'     },
 ]
 
 const UI_TOOLKIT = [
-  { demo: 'dataviz',   tab: 'charts',    title: 'Bar & Line Charts',   subtitle: 'D3.js · Keyboard Nav · WCAG AA'      },
-  { demo: 'dataviz',   tab: 'drilldown', title: 'Drill-Down Chart',    subtitle: 'D3.js · ARIA Live · Breadcrumb'      },
-  { demo: 'dataviz',   tab: 'pivot',     title: 'Pivot Table',         subtitle: 'D3.js · ARIA Grid · Sortable'        },
-  { demo: 'dataviz',   tab: 'donut',     title: 'Donut Chart',         subtitle: 'D3.js · ARIA Labels · Arc Tween'     },
   { demo: 'dashboard', tab: null,        title: 'Dashboard Builder',   subtitle: 'React Grid · Keyboard · Drag & Resize'},
+  { demo: 'dataviz',   tab: 'drilldown', title: 'Drill-Down Chart',    subtitle: 'D3.js · ARIA Live · Breadcrumb'      },
+  { demo: 'dataviz',   tab: 'donut',     title: 'Donut Chart',         subtitle: 'D3.js · ARIA Labels · Arc Tween'     },
+  { demo: 'dataviz',   tab: 'pivot',     title: 'Pivot Table',         subtitle: 'D3.js · ARIA Grid · Sortable'        },
+  { demo: 'dataviz',   tab: 'charts',    title: 'Bar & Line Charts',   subtitle: 'D3.js · Keyboard Nav · WCAG AA'      },
 ]
 
 export default function EngineeringLab() {
@@ -33,7 +33,7 @@ export default function EngineeringLab() {
             <FlaskConical size={14} aria-hidden="true" />
             Lab
           </span>
-          <h2 className="section__title"><span>Experiments</span></h2>
+          <h2 className="section__title"><span>Live Demos</span></h2>
           <p className="demo-section-title">
             Full-stack demos: React frontends communicating over WebSockets to Python/FastAPI backends.
           </p>

@@ -5,7 +5,6 @@ import { useLocale } from '../contexts/LocaleContext'
 const SECTIONS = [
   { id: 'about',      key: 'about'      },
   { id: 'skills',     key: 'skills'     },
-  { id: 'experience', key: 'experience' },
   { id: 'lab',        key: 'lab'        },
   { id: 'contact',    key: 'contact'    },
 ]
@@ -18,7 +17,6 @@ export default function ScrollNav() {
   const labels: Record<string, string> = {
     about:      strings.nav.about,
     skills:     strings.nav.skills,
-    experience: strings.nav.experience,
     lab:        strings.nav.lab,
     contact:    strings.nav.contact,
   }

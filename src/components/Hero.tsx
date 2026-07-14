@@ -64,15 +64,15 @@ export default function Hero() {
           <div className="hero__row hero__row--about">
             <span className="hero__key">[ABOUT]</span>
             <p className="hero__about">
-              10 years building interfaces where the data has to be right
-              and accessible to everyone.
+              10 years building dashboards and analytics platforms — now
+              focused on AI product interfaces and hardware-adjacent UI.
             </p>
           </div>
 
           <div className="hero__sep hero__sep--thin" role="presentation" />
 
           <div className="hero__actions">
-            <button className="btn btn--secondary" onClick={() => scrollTo('experience')}>View Experience</button>
+            <button className="btn btn--secondary" onClick={() => scrollTo('lab')}>View Demos</button>
             <button className="btn btn--primary"   onClick={() => navigate('/lab')}>Open Lab →</button>
           </div>
 
