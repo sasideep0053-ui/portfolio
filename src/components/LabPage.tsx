@@ -194,7 +194,7 @@ export default function LabPage() {
             className="lab-close"
             onClick={() => navigate('/')}
             aria-label="Close lab"
-            title="Close lab"
+            data-tooltip="Close lab"
           >
             <X size={13} />
           </button>
