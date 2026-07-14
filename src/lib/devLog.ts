@@ -9,7 +9,6 @@ let nextId    = 0
 const listeners = new Set<(e: LogEntry) => void>()
 
 export function devLog(tag: string, message: string) {
-  if (import.meta.env.PROD) return
   const now  = new Date()
   const time = now.toLocaleTimeString('en-US', {
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
