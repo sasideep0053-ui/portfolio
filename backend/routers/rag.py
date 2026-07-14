@@ -31,7 +31,7 @@ DB_DIR           = os.path.join(os.path.dirname(__file__), '..', 'rag_db')
 COLLECTION_NAME  = 'rag_docs'
 EMBED_MODEL      = 'all-MiniLM-L6-v2'
 GROQ_MODEL       = 'llama-3.1-8b-instant'
-RERANK_MODEL     = 'cross-encoder/ms-marco-MiniLM-L-6-v2'
+RERANK_MODEL     = 'cross-encoder/ms-marco-TinyBERT-L-2-v2'
 
 RETRIEVE_K            = 20
 RERANK_K              = 20
