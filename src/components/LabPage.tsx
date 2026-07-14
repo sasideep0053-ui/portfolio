@@ -16,12 +16,12 @@ const SIDEBAR_GROUPS = [
   {
     group: 'Experiments',
     items: [
-      { id: 'drive-score' as DemoId, label: 'Drive Score Simulator' },
+      { id: 'rag'         as DemoId, label: 'Docs RAG Assistant'    },
       { id: 'speech'      as DemoId, label: 'Speech Visualizer'     },
+      { id: 'reco'        as DemoId, label: 'Recommendation Engine' },
+      { id: 'drive-score' as DemoId, label: 'Drive Score Simulator' },
       { id: 'drone'       as DemoId, label: 'Drone PID Controller'  },
       { id: 'galton'      as DemoId, label: 'Galton Board'           },
-      { id: 'reco'        as DemoId, label: 'Recommendation Engine' },
-      { id: 'rag'         as DemoId, label: 'Docs RAG Assistant'    },
     ],
   },
   {
@@ -33,7 +33,7 @@ const SIDEBAR_GROUPS = [
 ]
 
 // ALL_IDS includes only lab demos
-const ALL_IDS: DemoId[] = ['drive-score', 'speech', 'drone', 'galton', 'reco', 'rag', 'scene']
+const ALL_IDS: DemoId[] = ['rag', 'speech', 'reco', 'drive-score', 'drone', 'galton', 'scene']
 
 const DEMO_META: Record<DemoId, { subtitle: string; context: string }> = {
   'drive-score': {
