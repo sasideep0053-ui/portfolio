@@ -2095,6 +2095,9 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
 .chat-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
 .chat-input::placeholder { color: var(--text-3); }
 
+.reco-search-input:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+.rag-input-form:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+
 .chat-send {
   width: 2.375rem; height: 2.375rem; border-radius: 0.5rem; border: none;
   background: var(--card); color: var(--text-3);

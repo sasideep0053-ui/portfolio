@@ -538,6 +538,7 @@ pearson(A,B) = Σ((a-ā)(b-b̄)) / √(Σ(a-ā)² × Σ(b-b̄)²)`}</pre>
             {/* Search */}
             <input
               type="search"
+              className="reco-search-input"
               placeholder="Search anime or genre…"
               value={search}
               onChange={e => setSearch(e.target.value)}

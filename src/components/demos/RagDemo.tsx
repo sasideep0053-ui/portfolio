@@ -890,7 +890,7 @@ export default function RagDemo() {
             )}
 
             {/* Input bar */}
-            <form onSubmit={handleSubmit} style={{
+            <form onSubmit={handleSubmit} className="rag-input-form" style={{
               display: 'flex', gap: '0.5rem', alignItems: 'center',
               background: 'var(--surface)', border: `1px solid ${busy ? accent + '55' : 'var(--border-mid)'}`,
               borderRadius: '0.75rem', padding: '0.375rem 0.375rem 0.375rem 0.875rem',
