@@ -34,11 +34,14 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
     const threshold = window.scrollY + window.innerHeight * 0.4
     let best = '', bestTop = -Infinity
+    let first = '', firstTop = Infinity
     for (const [id, el] of refs.current.entries()) {
       const top = el.getBoundingClientRect().top + window.scrollY
       if (top <= threshold && top > bestTop) { bestTop = top; best = id }
+      if (top < firstTop) { firstTop = top; first = id }
     }
-    if (best) setActiveId(best)
+    // Before any section crosses the threshold (e.g. still viewing the hero), default to the first section.
+    setActiveId(best || first)
   }, [])
 
   // Scroll listener
