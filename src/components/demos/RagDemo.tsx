@@ -741,13 +741,13 @@ export default function RagDemo() {
         </div>
       ) : (
         /* ── Demo ───────────────────────────────────────────────────── */
-        <div style={{
+        <div className="rag-two-col" style={{
           display: 'flex', gap: '0.75rem', alignItems: 'stretch',
           height: 'calc(100vh - 19rem)',
         }}>
 
           {/* ── Left: chat area ──────────────────────────────────────── */}
-          <div style={{
+          <div className="rag-two-col__main" style={{
             flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
           }}>
 
@@ -928,7 +928,7 @@ export default function RagDemo() {
           </div>
 
           {/* ── Right: pipeline trace ────────────────────────────────── */}
-          <div style={{
+          <div className="rag-two-col__sidebar" style={{
             flex: '0 0 22rem', minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }}>
             <div className="rag-pipeline" style={{

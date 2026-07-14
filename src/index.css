@@ -1852,6 +1852,13 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   .demo-two-col { flex-direction: column; }
   .demo-two-col__sidebar,
   .demo-two-col__sidebar--narrow { flex: 0 0 auto; width: 100%; }
+  /* RAG demo: chat + pipeline trace → stacked on mobile */
+  .rag-two-col { flex-direction: column !important; height: auto !important; }
+  .rag-two-col__main { min-height: 26rem; }
+  .rag-two-col__sidebar { flex: 0 0 auto !important; width: 100% !important; max-height: 14rem !important; }
+  /* Day-Night Scene: move time-preset buttons to the top so they never
+     collide with the bottom-left greeting/clock text on narrow screens */
+  .three-scene__times { top: 1rem !important; right: 1rem !important; bottom: auto !important; }
   /* Float action button to top so it's visible right after the canvas */
   .demo-action-bar { order: -1; }
   .lab-layout { flex-direction: column; height: auto; min-height: calc(100vh - var(--nav-h)); overflow-y: visible; overflow-x: hidden; }
