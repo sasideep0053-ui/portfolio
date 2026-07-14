@@ -109,6 +109,15 @@ export default function MatrixPortrait({
     let revealTriggered = false
     let stopTimer = 0, autoRevealTimer = 0
 
+    // Touch devices tend to have weaker GPUs for canvas filter/shadowBlur work —
+    // halve the frame rate there so it's smoother instead of janky, at the cost
+    // of the animation itself playing at half speed.
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    let frameCount = 0
+    // shadowBlur is the single most expensive Canvas 2D primitive here — skip
+    // the glow entirely on touch devices rather than paying for it every frame.
+    const glow = (px: number) => isTouchDevice ? 0 : px
+
     // ── Column state ───────────────────────────────────────────────────────
     const drops   = Array.from({length:cols}, (_,i) => -Math.random()*rows*0.2 - i*0.1)
     const revealY = new Array<number>(cols).fill(0)
@@ -188,6 +197,10 @@ export default function MatrixPortrait({
     // ── Tick ───────────────────────────────────────────────────────────────
     const tick = () => {
       if (!running) return
+      if (isTouchDevice) {
+        frameCount++
+        if (frameCount % 2 !== 0) { animId = requestAnimationFrame(tick); return }
+      }
       const [ar,ag,ab] = hexToRgb(accentRef.current)
 
       // ── SPIRAL (blue) — rotating Archimedean spiral ─────────────────────────
@@ -283,7 +296,7 @@ export default function MatrixPortrait({
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2)
             ctx.fillStyle   = `rgba(${ar},${ag},${ab},${fa})`
             ctx.shadowColor = `rgba(${ar},${ag},${ab},0.55)`
-            ctx.shadowBlur  = p.r * 3.5
+            ctx.shadowBlur  = glow(p.r * 3.5)
             ctx.fill()
           }
           // Killua lightning bolt: 3-segment jagged line, fires every ~45 frames
@@ -304,7 +317,7 @@ export default function MatrixPortrait({
             ctx.strokeStyle = `rgba(255,238,80,${boltAlpha})`
             ctx.lineWidth   = 1.5 + boltAlpha
             ctx.shadowColor = `rgba(255,220,50,0.9)`
-            ctx.shadowBlur  = 14
+            ctx.shadowBlur  = glow(14)
             ctx.stroke()
           }
           ctx.shadowBlur = 0
@@ -336,7 +349,7 @@ export default function MatrixPortrait({
               else ctx.lineTo(x, y)
             }
             ctx.shadowColor = 'rgba(56,189,248,0.62)'
-            ctx.shadowBlur  = 4 + w.lineW * 2
+            ctx.shadowBlur  = glow(4 + w.lineW * 2)
             ctx.strokeStyle = `rgba(56,189,248,${w.alpha})`
             ctx.lineWidth   = w.lineW
             ctx.stroke()
@@ -384,7 +397,7 @@ export default function MatrixPortrait({
               ctx.save()
               ctx.globalAlpha = Math.max(0, pulse)
               ctx.shadowColor = `rgba(${er},${eg},${eb},0.85)`
-              ctx.shadowBlur  = 6 + 7 * pulse
+              ctx.shadowBlur  = glow(6 + 7 * pulse)
               ctx.font        = `${fontSize}px monospace`
               ctx.fillStyle   = `rgb(${er},${eg},${eb})`
               ctx.fillText(ELEM_SYMS[elemIdx], cellCx, cellCy)
@@ -426,7 +439,7 @@ export default function MatrixPortrait({
             ctx.strokeStyle = `rgba(${ar},${ag},${ab},${ring.lineAlpha})`
             ctx.lineWidth   = 1.5
             ctx.shadowColor = `rgba(${ar},${ag},${ab},0.4)`
-            ctx.shadowBlur  = 6
+            ctx.shadowBlur  = glow(6)
             ctx.stroke()
 
             // Tick marks between runes
@@ -451,7 +464,7 @@ export default function MatrixPortrait({
               const pulse = 0.40 + 0.50 * Math.sin(orbitFrame * 0.038 + i * 1.2)
               ctx.globalAlpha = Math.max(0, pulse)
               ctx.shadowColor = `rgba(${ar},${ag},${ab},0.85)`
-              ctx.shadowBlur  = 10
+              ctx.shadowBlur  = glow(10)
               ctx.fillStyle   = `rgba(${ar},${ag},${ab},${Math.max(0, pulse)})`
               ctx.fillText(RUNE_CHARS[i % RUNE_CHARS.length], x, y)
             }
@@ -469,14 +482,14 @@ export default function MatrixPortrait({
           ctx.strokeStyle = `rgba(${ar},${ag},${ab},0.65)`
           ctx.lineWidth   = 1.8
           ctx.shadowColor = `rgba(${ar},${ag},${ab},0.7)`
-          ctx.shadowBlur  = 14
+          ctx.shadowBlur  = glow(14)
           ctx.stroke()
 
           // Pulsing center dot
           const dotR = 5 + 2 * Math.sin(orbitFrame * 0.06)
           ctx.beginPath(); ctx.arc(cx, cy, dotR, 0, Math.PI * 2)
           ctx.fillStyle   = `rgba(${ar},${ag},${ab},0.80)`
-          ctx.shadowBlur  = 20
+          ctx.shadowBlur  = glow(20)
           ctx.fill()
 
           ctx.shadowBlur = 0; ctx.globalAlpha = 1
@@ -522,7 +535,7 @@ export default function MatrixPortrait({
             ctx.font        = `${p.size}px monospace`
             ctx.globalAlpha = p.alpha * fade
             ctx.shadowColor = `rgba(${ar},${ag},${ab},0.85)`
-            ctx.shadowBlur  = 8 + p.size * 0.3
+            ctx.shadowBlur  = glow(8 + p.size * 0.3)
             ctx.fillStyle   = `rgba(${ar},${ag},${ab},1)`
             ctx.fillText(p.char, p.x, p.y)
             if (p.life >= p.maxLife) cursedParticles.splice(i, 1)
@@ -532,7 +545,7 @@ export default function MatrixPortrait({
           if (ct < 26) {
             const bp = Math.sin(ct / 26 * Math.PI)
             ctx.font = `bold ${68 + 22*bp}px monospace`
-            ctx.globalAlpha = bp * 0.55; ctx.shadowBlur = 36 * bp
+            ctx.globalAlpha = bp * 0.55; ctx.shadowBlur = glow(36 * bp)
             ctx.fillText('茈', cx, cy)
           }
           ctx.shadowBlur = 0; ctx.globalAlpha = 1
