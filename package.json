@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "description": "Personal portfolio site for Sasideep Kakumani — Vite/React frontend with a FastAPI backend powering real-time and AI engineering demos.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sasideep0053-ui/portfolio"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
