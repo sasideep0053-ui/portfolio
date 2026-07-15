@@ -16,6 +16,7 @@
   "dependencies": {
     "@types/react-grid-layout": "^1.3.6",
     "@types/three": "^0.184.1",
+    "@vercel/analytics": "^2.0.1",
     "ag-charts-community": "^10.3.3",
     "ag-charts-react": "^10.3.3",
     "ag-grid-community": "^32.3.4",
