@@ -3,6 +3,7 @@ import asyncio
 import io
 import json
 import os
+import threading
 import wave
 import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -112,16 +113,21 @@ def compute_waveform(pcm: np.ndarray, n_out: int = WAVEFORM_BINS) -> list:
 
 
 # ── Transcription — Groq-hosted Whisper only (no local fallback) ───────────
-_groq_client = None
+_groq_client      = None
+_groq_client_lock = threading.Lock()
 
 
 def _get_groq_client(api_key: str):
     # Reused across chunks — a fresh Groq/httpx client every ~2s during a
     # recording session leaks an unclosed connection pool, adding up fast.
+    # Called from thread-pool workers (run_in_executor), so the check-then-
+    # create needs a real lock, unlike the asyncio singletons in rag.py/chat.py.
     global _groq_client
     if _groq_client is None:
-        from groq import Groq
-        _groq_client = Groq(api_key=api_key)
+        with _groq_client_lock:
+            if _groq_client is None:
+                from groq import Groq
+                _groq_client = Groq(api_key=api_key)
     return _groq_client
 
 
