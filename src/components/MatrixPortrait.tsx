@@ -254,8 +254,12 @@ export default function MatrixPortrait({
         if (!fadingOut) {
           const RUINS_CHARS = '█▓▒░▪◼▫▤▥'
           ctx.font = `${CHAR_SZ}px monospace`
-          for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
+          // Touch devices: this mode's full-grid fillText scan is by far the
+          // heaviest per-frame cost in the file — thin the grid to a quarter
+          // of the cells there instead of skipping frames like the other modes.
+          const step = isTouchDevice ? 2 : 1
+          for (let row = 0; row < rows; row += step) {
+            for (let col = 0; col < cols; col += step) {
               const rawB  = px ? brightness(px, col, row, cols, rows) : 0.25 + Math.random()*0.4
               const edge  = edgeMap ? edgeMap[row*cols+col] : 0
               const phase = col * 0.43 + row * 0.72
@@ -680,8 +684,11 @@ export default function MatrixPortrait({
       >
         <canvas ref={canvasRef} className="matrix-portrait" role="img" aria-label="Portrait" />
         {src && (
-          <img src={src} alt="Sasideep Kakumani" draggable={false}
-            className={`hero__portrait-reveal${revealing ? ' hero__portrait-reveal--visible' : ''}`} />
+          <>
+            <img src={src} alt="Sasideep Kakumani" draggable={false}
+              className={`hero__portrait-reveal${revealing ? ' hero__portrait-reveal--visible' : ''}`} />
+            <div className={`hero__portrait-tint${revealing ? ' hero__portrait-tint--visible' : ''}`} />
+          </>
         )}
       </div>
       <p className="hero__decrypt-label">

@@ -57,8 +57,8 @@ const DEMO_META: Record<DemoId, { subtitle: string; context: string }> = {
     context:  'Rate anime to get personalised recommendations computed live in the browser — K-nearest-neighbor collaborative filtering with switchable similarity metrics and explainable "why this was recommended" reasoning.',
   },
   'rag': {
-    subtitle: 'RAG · ChromaDB · BM25 · Cross-Encoder Rerank · Groq · FastAPI SSE',
-    context:  'Ask questions about React, TypeScript, Vite, or FastAPI docs and get grounded answers. The live pipeline trace shows every stage as it runs: hybrid vector + keyword retrieval, Reciprocal Rank Fusion, cross-encoder reranking, and confidence-gated Groq LLM generation.',
+    subtitle: 'RAG · ChromaDB · BM25 · Voyage AI Rerank · Groq · FastAPI SSE',
+    context:  'Ask questions about React, TypeScript, Vite, or FastAPI docs and get grounded answers. The live pipeline trace shows every stage as it runs: hybrid vector + keyword retrieval, Reciprocal Rank Fusion, Voyage AI reranking, and confidence-gated Groq LLM generation.',
   },
   'scene': {
     subtitle: 'Three.js · WebGL · GLSL Shaders · Real-time Rendering',

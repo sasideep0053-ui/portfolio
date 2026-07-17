@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import math
 import os
 import time
 from collections import defaultdict
@@ -31,9 +30,9 @@ def _rate_ok(ip: str, limit: int = 20, window: int = 60) -> bool:
 # ── Pipeline config ───────────────────────────────────────────────────────────
 DB_DIR           = os.path.join(os.path.dirname(__file__), '..', 'rag_db')
 COLLECTION_NAME  = 'rag_docs'
-EMBED_MODEL      = 'all-MiniLM-L6-v2'
+EMBED_MODEL      = 'voyage-4-lite'
 GROQ_MODEL       = 'llama-3.1-8b-instant'
-RERANK_MODEL     = 'cross-encoder/ms-marco-TinyBERT-L-2-v2'
+RERANK_MODEL     = 'rerank-2.5-lite'
 
 RETRIEVE_K            = 20
 RERANK_K              = 20
@@ -45,24 +44,68 @@ ANSWER_MIN_CONFIDENCE = 0.25
 # ── Singletons ────────────────────────────────────────────────────────────────
 _collection = None
 _bm25       = None
-_reranker   = None
-_embedder   = None
 _all_ids:   list[str]  = []
 _all_docs:  list[str]  = []
 _all_metas: list[dict] = []
 
+_voyage_client = None
+
+
+def _get_voyage_client():
+    global _voyage_client
+    if _voyage_client is None:
+        import voyageai
+        _voyage_client = voyageai.Client(api_key=os.environ['VOYAGE_API_KEY'])
+    return _voyage_client
+
+
+def _embed_query(question: str) -> list[float]:
+    result = _get_voyage_client().embed([question], model=EMBED_MODEL, input_type='query')
+    return result.embeddings[0]
+
+# Idle-unload: give memory back to the OS after a stretch of no queries,
+# instead of holding the corpus (docs + BM25 index) resident forever.
+IDLE_UNLOAD_SECONDS = 600
+_last_used = 0.0
+
+
+def _touch() -> None:
+    global _last_used
+    _last_used = time.time()
+
+
+def _unload_index() -> None:
+    global _collection, _bm25, _all_ids, _all_docs, _all_metas
+    if _collection is None:
+        return
+    print('[rag] Idle — unloading corpus to free memory')
+    _collection = None
+    _bm25       = None
+    _all_ids    = []
+    _all_docs   = []
+    _all_metas  = []
+    import gc
+    gc.collect()
+
+
+async def idle_watchdog() -> None:
+    while True:
+        await asyncio.sleep(60)
+        if _collection is not None and _last_used and time.time() - _last_used > IDLE_UNLOAD_SECONDS:
+            async with _load_lock:
+                await run_in_threadpool(_unload_index)
+
 
 def _load_index() -> None:
-    global _collection, _bm25, _reranker, _embedder, _all_ids, _all_docs, _all_metas
+    global _collection, _bm25, _all_ids, _all_docs, _all_metas
 
     try:
         import chromadb
         from rank_bm25 import BM25Okapi
-        from sentence_transformers import SentenceTransformer, CrossEncoder
     except ImportError as e:
         raise RuntimeError(
             f'Missing dependency: {e}. '
-            'Run: pip install chromadb rank-bm25 sentence-transformers'
+            'Run: pip install chromadb rank-bm25'
         )
 
     if not os.path.exists(DB_DIR):
@@ -73,7 +116,6 @@ def _load_index() -> None:
 
     import chromadb as _chromadb
     from rank_bm25 import BM25Okapi
-    from sentence_transformers import SentenceTransformer, CrossEncoder
 
     client      = _chromadb.PersistentClient(path=DB_DIR)
     _collection = client.get_collection(COLLECTION_NAME)
@@ -87,24 +129,16 @@ def _load_index() -> None:
     tokenised = [doc.lower().split() for doc in _all_docs]
     _bm25     = BM25Okapi(tokenised)
 
-    print(f'[rag] Loading embedder: {EMBED_MODEL}...')
-    _embedder = SentenceTransformer(EMBED_MODEL)
-
-    print(f'[rag] Loading reranker: {RERANK_MODEL}...')
-    _reranker = CrossEncoder(RERANK_MODEL)
-
-    print(f'[rag] Ready — {total} chunks (vector + BM25 + cross-encoder reranker).')
+    print(f'[rag] Ready — {total} chunks (vector + BM25 → Voyage {EMBED_MODEL}/{RERANK_MODEL}).')
 
 
 def _get_resources():
     if _collection is None:
         _load_index()
-    return _collection, _bm25, _reranker, _embedder
+    return _collection, _bm25
 
 
-# Guards against two concurrent cold requests both triggering _load_index() —
-# doubling the embedder+reranker load at once is exactly the scenario that
-# tips the free-tier container into OOM.
+# Guards against two concurrent cold requests both triggering _load_index().
 _load_lock = asyncio.Lock()
 
 
@@ -113,7 +147,8 @@ async def _get_resources_async():
         async with _load_lock:
             if _collection is None:
                 await run_in_threadpool(_load_index)
-    return _collection, _bm25, _reranker, _embedder
+    _touch()
+    return _collection, _bm25
 
 
 # ── SSE helpers ───────────────────────────────────────────────────────────────
@@ -132,18 +167,17 @@ def _rrf_merge(ranked_lists: list[list[str]], k: int = RRF_K) -> list[str]:
 
 
 # ── Re-ranking ────────────────────────────────────────────────────────────────
-def _sigmoid(x: float) -> float:
-    return 1.0 / (1.0 + math.exp(-x))
-
-
 def _rerank_chunks(question: str, chunk_ids: list[str],
                    id_to_doc: dict[str, str]) -> tuple[list[str], list[float]]:
     if not chunk_ids:
         return [], []
-    pairs  = [(question, id_to_doc[cid]) for cid in chunk_ids if cid in id_to_doc]
-    confs  = [_sigmoid(s) for s in _reranker.predict(pairs)]
-    ranked = sorted(zip(chunk_ids, confs), key=lambda x: x[1], reverse=True)
-    return [cid for cid, _ in ranked], [c for _, c in ranked]
+    valid_ids = [cid for cid in chunk_ids if cid in id_to_doc]
+    docs      = [id_to_doc[cid] for cid in valid_ids]
+    result    = _get_voyage_client().rerank(query=question, documents=docs,
+                                            model=RERANK_MODEL, top_k=len(docs))
+    ranked_ids   = [valid_ids[r.index] for r in result.results]
+    ranked_confs = [float(r.relevance_score) for r in result.results]
+    return ranked_ids, ranked_confs
 
 
 # ── System prompts ────────────────────────────────────────────────────────────
@@ -196,15 +230,30 @@ _PROMPTS = {
 
 
 # ── Full streaming pipeline ───────────────────────────────────────────────────
+async def _unavailable() -> AsyncGenerator[str, None]:
+    """Cloud embed/rerank call failed — surface a clean error, not a stack trace."""
+    msg = 'The docs assistant is temporarily unavailable — please try again in a moment.'
+    for ch in msg:
+        yield f'data: {json.dumps(ch)}\n\n'
+    yield f'data: [CONFIDENCE]{json.dumps(0)}\n\n'
+    yield f'data: [SOURCES]{json.dumps([])}\n\n'
+    yield 'data: [DONE]\n\n'
+
+
 async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
-    collection, bm25, _, embedder = await _get_resources_async()
+    collection, bm25 = await _get_resources_async()
 
-    # ── Step 1: Embed the question ────────────────────────────────────────────
-    yield _step('embed', f'Embedding question', f'model: {EMBED_MODEL}')
-    embedding = await run_in_threadpool(embedder.encode, question, normalize_embeddings=True)
-    query_emb = embedding.tolist()
+    # ── Step 1: Embed the question ────────────────────────────────────────
+    yield _step('embed', 'Embedding question', f'model: {EMBED_MODEL} (Voyage AI)')
+    try:
+        query_emb = await run_in_threadpool(_embed_query, question)
+    except Exception as exc:
+        yield _step('error', 'Embedding service unavailable', str(exc))
+        async for chunk in _unavailable():
+            yield chunk
+        return
 
-    # ── Step 2: Vector search ─────────────────────────────────────────────────
+    # ── Step 2: Vector search ─────────────────────────────────────────────
     yield _step('vector', f'Vector search', f'over {doc_source} index')
     vec_results = await run_in_threadpool(
         collection.query,
@@ -218,7 +267,7 @@ async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
     yield _step('vector', f'Vector search — {len(vec_ids)} candidates',
                 f'top sources: {", ".join(vec_sources[:3])}')
 
-    # ── Step 3: BM25 keyword search ───────────────────────────────────────────
+    # ── Step 3: BM25 keyword search ────────────────────────────────────────
     yield _step('bm25', 'BM25 keyword search', f'tokenising: "{question[:40]}"')
     tokens         = question.lower().split()
     bm25_scores    = bm25.get_scores(tokens)
@@ -229,7 +278,7 @@ async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
     yield _step('bm25', f'BM25 — {len(bm25_ids)} candidates',
                 f'top sources: {", ".join(bm25_sources[:3])}')
 
-    # ── Step 4: RRF merge ─────────────────────────────────────────────────────
+    # ── Step 4: RRF merge ──────────────────────────────────────────────────
     yield _step('rrf', 'Reciprocal Rank Fusion', f'merging vector + BM25 lists (k={RRF_K})')
     merged       = _rrf_merge([vec_ids, bm25_ids])
     unique_count = len(merged)
@@ -237,14 +286,20 @@ async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
     yield _step('rrf', f'RRF merged — {unique_count} unique chunks',
                 f'{overlap} chunks appeared in both lists (boosted in ranking)')
 
-    # ── Step 5: Cross-encoder reranking ───────────────────────────────────────
-    yield _step('rerank', f'Cross-encoder reranking top {min(RERANK_K, len(merged))} chunks',
-                f'model: {RERANK_MODEL}')
+    # ── Step 5: Reranking ───────────────────────────────────────────────────
+    yield _step('rerank', f'Reranking top {min(RERANK_K, len(merged))} chunks',
+                f'model: {RERANK_MODEL} (Voyage AI)')
     id_to_doc  = dict(zip(_all_ids, _all_docs))
     id_to_meta = dict(zip(_all_ids, _all_metas))
     candidates = merged[:RERANK_K]
 
-    reranked_ids, reranked_confs = await run_in_threadpool(_rerank_chunks, question, candidates, id_to_doc)
+    try:
+        reranked_ids, reranked_confs = await run_in_threadpool(_rerank_chunks, question, candidates, id_to_doc)
+    except Exception as exc:
+        yield _step('error', 'Reranking service unavailable', str(exc))
+        async for chunk in _unavailable():
+            yield chunk
+        return
 
     top5_detail = '  |  '.join(
         f'{id_to_meta[cid]["source"]} {conf:.2f}'
@@ -272,7 +327,7 @@ async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
         for ch in msg:
             yield f'data: {json.dumps(ch)}\n\n'
         yield f'data: [CONFIDENCE]{json.dumps(round(top_conf, 3))}\n\n'
-        yield 'data: [SOURCES]{json.dumps([])}\n\n'
+        yield f'data: [SOURCES]{json.dumps([])}\n\n'
         yield 'data: [DONE]\n\n'
         return
 
@@ -327,7 +382,7 @@ class RagRequest(BaseModel):
 @router.get('/api/rag/status')
 def rag_status():
     try:
-        col, _, _, _ = _get_resources()
+        col, _ = _get_resources()
         count = col.count()
         by_source: dict[str, int] = {}
         for m in _all_metas:
@@ -337,7 +392,7 @@ def rag_status():
             'status':        'ready',
             'chunks':        count,
             'by_source':     by_source,
-            'pipeline':      'vector + BM25 → RRF → cross-encoder rerank → Groq LLM',
+            'pipeline':      'vector + BM25 → RRF → Voyage rerank → Groq LLM',
             'embed_model':   EMBED_MODEL,
             'rerank_model':  RERANK_MODEL,
         }

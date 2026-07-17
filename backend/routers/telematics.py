@@ -14,7 +14,7 @@ MAX_LAT_G         = 1.0     # lateral cap (street-tire grip limit ~1G)
 MAX_SPEED_MPH     = 100.0   # speed ceiling
 
 # ── Speed simulation constants (frontend drives physics; kept in sync here) ─
-# Gas: 24 × (1 − speed/130) mph/s — tapers near top speed, ~1.09G at 0 mph → 0-60 in ~3.3s
+# Gas: 18 mph/s (constant) — ~0.82G, 0-60 in ~3.3s (sports car)
 BRAKE_BASE        =  5.0    # mph/s  base braking deceleration
 BRAKE_COEFF       =  0.18   # speed-dependent brake factor (mph/s per mph)
 #   total brake decel = (BRAKE_BASE + BRAKE_COEFF × speed) mph/s

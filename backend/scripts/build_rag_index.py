@@ -7,12 +7,12 @@ Hybrid chunking strategy (ported from datapark-ui/scripts/build_index.py):
   2. Semantic chunking (centroid comparison) for long prose sections
   3. Character fallback for structured content (tables, bullet lists)
 
-Embeddings: sentence-transformers all-MiniLM-L6-v2 (runs locally, no API key)
+Embeddings: Voyage AI voyage-4-lite (hosted API — no local model, no torch).
 
 Requirements:
-    pip install chromadb sentence-transformers numpy
+    pip install chromadb voyageai numpy
 
-Run after fetch_docs.py:
+Run after fetch_docs.py, with VOYAGE_API_KEY set in the environment:
     python backend/scripts/build_rag_index.py
 """
 
@@ -21,12 +21,13 @@ import re
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 import chromadb
-from sentence_transformers import SentenceTransformer
+import voyageai
 
 DOCS_DIR        = os.path.join(os.path.dirname(__file__), '..', 'docs')
 DB_DIR          = os.path.join(os.path.dirname(__file__), '..', 'rag_db')
 COLLECTION_NAME = 'rag_docs'
-EMBED_MODEL     = 'all-MiniLM-L6-v2'
+EMBED_MODEL     = 'voyage-4-lite'
+EMBED_BATCH     = 100  # texts per Voyage embed call
 
 MAX_SECTION_CHARS      = 1200
 SEMANTIC_THRESHOLD     = 0.75
@@ -34,19 +35,29 @@ MIN_SEMANTIC_CHUNK_CHARS = 300
 FALLBACK_CHUNK_SIZE    = 800
 FALLBACK_OVERLAP       = 150
 
-_embedder: Optional[SentenceTransformer] = None
+_client: Optional[voyageai.Client] = None
 
 
-def get_embedder() -> SentenceTransformer:
-    global _embedder
-    if _embedder is None:
-        print(f'Loading embedding model: {EMBED_MODEL}...')
-        _embedder = SentenceTransformer(EMBED_MODEL)
-    return _embedder
+def get_client() -> voyageai.Client:
+    global _client
+    if _client is None:
+        _client = voyageai.Client(api_key=os.environ['VOYAGE_API_KEY'])
+    return _client
+
+
+def embed_batch(texts: List[str], input_type: str = 'document') -> List[List[float]]:
+    """Embed texts via Voyage, chunked to stay under per-request limits."""
+    client = get_client()
+    out: List[List[float]] = []
+    for i in range(0, len(texts), EMBED_BATCH):
+        batch  = texts[i:i + EMBED_BATCH]
+        result = client.embed(batch, model=EMBED_MODEL, input_type=input_type)
+        out.extend(result.embeddings)
+    return out
 
 
 def embed(text: str) -> List[float]:
-    return get_embedder().encode(text, normalize_embeddings=True).tolist()
+    return embed_batch([text])[0]
 
 
 def is_structured(text: str) -> bool:
@@ -80,7 +91,8 @@ def semantic_chunks(text: str, title_prefix: str = '') -> list[str]:
         return [title_prefix + text]
 
     print(f'      semantic split: {len(sentences)} sentences...')
-    embs = get_embedder().encode(sentences, normalize_embeddings=True)
+    raw_embs = embed_batch(sentences)
+    embs     = [np.array(v) / (np.linalg.norm(v) + 1e-9) for v in raw_embs]
 
     chunks: List[str] = []
     group_sents = [sentences[0]]
@@ -137,7 +149,7 @@ def chunk_document(text: str) -> List[str]:
 
 def load_docs() -> List[Tuple[str, str, str]]:
     docs: List[Tuple[str, str, str]] = []
-    for source in ('react', 'typescript', 'vite'):
+    for source in ('react', 'typescript', 'vite', 'fastapi'):
         source_dir = os.path.join(DOCS_DIR, source)
         if not os.path.exists(source_dir):
             print(f'  [skip] {source}: run fetch_docs.py first')
@@ -181,14 +193,12 @@ def build_index():
             texts.append(chunk)
             metas.append({'source': name, 'doc_source': source, 'chunk': i})
 
-    print(f'\nEmbedding {len(texts)} chunks with {EMBED_MODEL}...')
-    embedder    = get_embedder()
-    embeddings  = embedder.encode(texts, normalize_embeddings=True,
-                                  show_progress_bar=True, batch_size=64)
+    print(f'\nEmbedding {len(texts)} chunks with {EMBED_MODEL} (Voyage AI)...')
+    embeddings = embed_batch(texts, input_type='document')
 
     collection.add(
         ids=ids,
-        embeddings=embeddings.tolist(),
+        embeddings=embeddings,
         documents=texts,
         metadatas=metas,
     )

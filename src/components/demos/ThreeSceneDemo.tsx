@@ -189,11 +189,15 @@ export default function ThreeSceneDemo() {
     const mount = mountRef.current
     if (!mount) return
 
+    // Touch devices tend to have far weaker GPU fill-rate — antialiasing, soft
+    // shadow filtering, and bloom's extra passes are the costliest knobs here.
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+
     // ── Renderer ───────────────────────────────────────────────────────────
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const renderer = new THREE.WebGLRenderer({ antialias: !isTouchDevice })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouchDevice ? 1.5 : 2))
     renderer.setSize(mount.clientWidth, mount.clientHeight)
-    renderer.shadowMap.enabled  = true
+    renderer.shadowMap.enabled  = !isTouchDevice
     renderer.shadowMap.type     = THREE.PCFSoftShadowMap
     renderer.toneMapping        = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.0
@@ -490,7 +494,12 @@ export default function ThreeSceneDemo() {
     // ── Post-processing ────────────────────────────────────────────────────
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
-    const bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.28, 0.40, 0.88)
+    // Bloom's internal blur mip chain scales with this resolution — halve it on
+    // touch devices, where it's otherwise one of the costliest passes per frame.
+    const bloomScale = isTouchDevice ? 0.5 : 1
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(mount.clientWidth * bloomScale, mount.clientHeight * bloomScale), 0.28, 0.40, 0.88,
+    )
     composer.addPass(bloom)
     composer.addPass(new OutputPass())
 

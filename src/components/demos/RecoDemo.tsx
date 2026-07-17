@@ -281,7 +281,7 @@ function computeRecommendations(
 } {
   if (myRatings.every(r => r === 0)) return { recommendations: [], neighbors: [] }
 
-  const MIN_OVERLAP = 5  // need 4 co-rated series for meaningful signal
+  const MIN_OVERLAP = 5  // need 5 co-rated series for meaningful signal
 
   const sims = DATASET_WITH_SASI
     .map((row, uid) => {
@@ -508,6 +508,7 @@ you = [5, 0, 4, 0, 3, ...]   // 0 = not seen, 1–5 = your rating
 // ── Step 2: Cosine similarity vs every other user ─────
 sim(A, B) = (A · B) / (|A| × |B|)
 // Only uses titles both users have rated (non-zero overlap)
+// Users with fewer than 5 co-rated titles are dropped entirely
 // 1.0 = identical taste  ·  0 = no overlap  ·  -1 = opposite
 
 // ── Step 3: Top-K nearest neighbors ───────────────────

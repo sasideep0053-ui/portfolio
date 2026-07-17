@@ -474,12 +474,13 @@ dBFS = 20 × log10(rms)                  // 0 = clipping
   −60: silence    −30: quiet    −12: loud speech
 
 // ── Transcription (backend) ───────────────────────────
-16-bit PCM chunks → WebSocket → FastAPI
-  → Whisper (openai/whisper-base) → text chunk
-  → sent back as { type: "chunk", text: "..." }
+16-bit PCM chunks → WebSocket → FastAPI (buffered ~2s)
+  → Groq-hosted Whisper (whisper-large-v3-turbo), falling back to
+    a local faster-whisper (base, int8) model if Groq is unreachable
+  → sent back as { type: "transcript", text: "...", language: "..." }
   → animated typewriter effect in the transcript box`}</pre>
           <p className="demo-stack-note">
-            Stack: React · Web Audio API · ScriptProcessorNode · WebSocket (FastAPI/Python) · Whisper ASR · Canvas 2D
+            Stack: React · Web Audio API · ScriptProcessorNode · WebSocket (FastAPI/Python) · Groq Whisper API (faster-whisper fallback) · Canvas 2D
           </p>
         </div>
       ) : (
@@ -619,7 +620,7 @@ dBFS = 20 × log10(rms)                  // 0 = clipping
               TRANSCRIPT
             </span>
             <span style={{ fontSize: '0.5625rem', color: 'var(--text-3)', fontFamily: 'monospace' }}>
-              {recording ? '● Whisper · every 500ms' : accumulatedRef.current ? 'session complete' : ''}
+              {recording ? '● Whisper · every 2s' : accumulatedRef.current ? 'session complete' : ''}
             </span>
           </div>
           <div

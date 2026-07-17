@@ -300,6 +300,11 @@ button, a, [role="button"] {
   touch-action: manipulation;
 }
 
+button:not(:disabled):active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
 *:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 0.1875rem;
@@ -746,6 +751,14 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   opacity: 0; transition: opacity 0.55s ease; pointer-events: none;
 }
 .hero__portrait-reveal--visible { opacity: 1; }
+.hero__portrait-tint {
+  position: absolute; inset: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  mix-blend-mode: color;
+  opacity: 0; transition: opacity 0.55s ease; pointer-events: none;
+}
+.hero__portrait-tint--visible { opacity: 0.12; }
 .hero__decrypt-label {
   margin-top: 10px;
   font-family: 'Courier New', monospace;
@@ -1062,8 +1075,6 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   font-size: 1rem; font-weight: 700;
   font-family: monospace; line-height: 1;
 }
-
- { overflow: hidden; position: relative; }
 
 .d3-tooltip {
   display: none; position: absolute; pointer-events: none; z-index: 200;
@@ -1760,7 +1771,7 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
 
 .lab-main {
   flex: 1; min-width: 0;
-  padding: 10px 28px 60px;
+  padding: 10px 28px 24px;
   overflow-y: auto;
   height: 100%;
   background: color-mix(in srgb, var(--bg) 70%, transparent);
@@ -1788,6 +1799,14 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .lab-main__demo { margin-top: 0; }
+
+/* RAG demo: fill exact remaining height via flex instead of a viewport-calc
+   guess — keeps sizing correct regardless of header/nav height changes. */
+.rag-demo-root { display: flex; flex-direction: column; min-height: 0; }
+.lab-main:has(.rag-two-col) { display: flex; flex-direction: column; overflow: hidden; }
+.lab-main:has(.rag-two-col) .lab-main__demo { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.lab-main:has(.rag-two-col) .lab-main__demo .rag-demo-root { flex: 1; min-height: 0; }
+
 .lab-mobile-nav { display: none !important; }
 .lab-demo-select { display: none; }
 
@@ -1853,9 +1872,12 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   .demo-two-col__sidebar,
   .demo-two-col__sidebar--narrow { flex: 0 0 auto; width: 100%; }
   /* RAG demo: chat + pipeline trace → stacked on mobile */
-  .rag-two-col { flex-direction: column !important; height: auto !important; }
+  .rag-two-col { flex-direction: column !important; height: auto !important; flex: none !important; }
+  .lab-main:has(.rag-two-col) { display: block !important; overflow: visible !important; }
+  .lab-main:has(.rag-two-col) .lab-main__demo { display: block !important; flex: none !important; }
   .rag-two-col__main { min-height: 26rem; }
-  .rag-two-col__sidebar { flex: 0 0 auto !important; width: 100% !important; max-height: 14rem !important; }
+  .rag-two-col__sidebar { flex: 0 0 auto !important; width: 100% !important; max-height: none !important; overflow: visible !important; }
+  .rag-pipeline { flex: 0 0 auto !important; overflow-y: visible !important; }
   /* Day-Night Scene: move time-preset buttons to the top so they never
      collide with the bottom-left greeting/clock text on narrow screens */
   .three-scene__times { top: 1rem !important; right: 1rem !important; bottom: auto !important; }

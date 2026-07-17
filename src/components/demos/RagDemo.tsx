@@ -31,7 +31,7 @@ const INITIAL_STEPS = (): PipelineStep[] => [
   { phase: 'vector',   label: 'Vector Search', msg: '', detail: '', state: 'idle' },
   { phase: 'bm25',     label: 'BM25 Keyword',  msg: '', detail: '', state: 'idle' },
   { phase: 'rrf',      label: 'RRF Merge',     msg: '', detail: '', state: 'idle' },
-  { phase: 'rerank',   label: 'Cross-Encoder', msg: '', detail: '', state: 'idle' },
+  { phase: 'rerank',   label: 'Voyage Rerank', msg: '', detail: '', state: 'idle' },
   { phase: 'filter',   label: 'Filter',        msg: '', detail: '', state: 'idle' },
   { phase: 'generate', label: 'Groq LLM',      msg: '', detail: '', state: 'idle' },
 ]
@@ -93,9 +93,9 @@ function ConfBadge({ score }: { score: number }) {
                     ['Low',    '#dc2626']
   const explain =
     score >= 0.8
-      ? 'The cross-encoder is highly confident the retrieved chunks directly answer this question.'
+      ? 'The Voyage AI reranker is highly confident the retrieved chunks directly answer this question.'
       : score >= 0.5
-      ? 'The cross-encoder found relevant chunks but some may be tangentially related. The answer may be incomplete.'
+      ? 'The Voyage AI reranker found relevant chunks but some may be tangentially related. The answer may be incomplete.'
       : 'Few chunks scored above the relevance threshold. The answer is based on weak evidence — treat it carefully.'
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -116,7 +116,7 @@ function ConfBadge({ score }: { score: number }) {
           position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, zIndex: 99,
           background: 'var(--card)', border: `1px solid ${color}44`, borderRadius: '0.5rem',
           padding: '0.5rem 0.625rem', fontSize: '0.625rem', color: 'var(--text-2)',
-          lineHeight: 1.6, width: '14rem', pointerEvents: 'none',
+          lineHeight: 1.6, width: '15rem', pointerEvents: 'none',
           boxShadow: `0 0.5rem 1.5rem rgba(0,0,0,0.4)`,
         }}>
           <strong style={{ color, display: 'block', marginBottom: '0.25rem' }}>
@@ -124,7 +124,8 @@ function ConfBadge({ score }: { score: number }) {
           </strong>
           {explain}
           <span style={{ display: 'block', marginTop: '0.25rem', color: 'var(--text-3)', fontSize: '0.625rem' }}>
-            Score = cross-encoder confidence that the best retrieved chunk answers the question (sigmoid of ms-marco logit).
+            Score = Voyage AI rerank-2.5-lite relevance score for the best retrieved chunk against the question.
+            High ≥ 80% · Medium ≥ 50% · Low below that.
           </span>
         </span>
       )}
@@ -137,11 +138,13 @@ const STAGE_ICON: Record<string, string> = {
   embed: '⬡', vector: '⊙', bm25: '≡', rrf: '⊕', rerank: '⊗', filter: '◈', generate: '✦',
 }
 
-// ── Mini confidence bars (cross-encoder) ──────────────────────────────────────
-function ConfBars({ detail, accent }: { detail: string; accent: string }) {
-  const matches = [...detail.matchAll(/(\S+)\s+(0\.\d+)/g)].slice(0, 4)
+// ── Mini confidence bars (Voyage rerank) ────────────────────────────────────
+function ConfBars({ detail, msg, accent }: { detail: string; msg: string; accent: string }) {
+  const all     = [...detail.matchAll(/(\S+)\s+(0\.\d+)/g)]
+  const matches = all.slice(0, 4)
   if (!matches.length) return null
-  const max = parseFloat(matches[0][2])
+  const max   = parseFloat(matches[0][2])
+  const total = parseInt(msg.match(/for (\d+) chunks/)?.[1] ?? '0')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.3125rem' }}>
       {matches.map(([, name, score]) => {
@@ -152,10 +155,10 @@ function ConfBars({ detail, accent }: { detail: string; accent: string }) {
         return (
           <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
             <span style={{ fontSize: '0.625rem', fontFamily: 'monospace', color: 'var(--text-3)',
-              width: '4.5rem', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              width: '7.5rem', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {name}
             </span>
-            <div style={{ flex: 1, height: '0.25rem', borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
+            <div style={{ flex: '0 1 5rem', height: '0.25rem', borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 99,
                 transition: 'width 0.4s ease' }} />
             </div>
@@ -165,6 +168,11 @@ function ConfBars({ detail, accent }: { detail: string; accent: string }) {
           </div>
         )
       })}
+      {total > matches.length && (
+        <div style={{ fontSize: '0.5625rem', fontFamily: 'monospace', color: 'var(--text-3)', marginTop: '0.125rem' }}>
+          top {matches.length} of {total} scored chunks shown
+        </div>
+      )}
     </div>
   )
 }
@@ -267,7 +275,7 @@ function StageCard({ step, accent, half = false, compact = false }: {
       {!compact && done && step.detail && (!half || step.detail.length <= 40) && (
         <>
           {step.phase === 'rerank' ? (
-            <ConfBars detail={step.detail} accent={accent} />
+            <ConfBars detail={step.detail} msg={step.msg} accent={accent} />
           ) : step.phase === 'filter' ? (
             <FilterBar msg={step.msg} detail={step.detail} accent={accent} />
           ) : (
@@ -450,7 +458,7 @@ const HOW_IT_WORKS = `// ── WHY hybrid chunking? ─────────
 
 
 // ── WHY HNSW + BM25 instead of just one? ────────────────────────────────────
-//   Vector search (HNSW, all-MiniLM-L6-v2, 384-dim):
+//   Vector search (HNSW, voyage-4-lite, hosted embeddings):
 //   STRENGTH  → "How do I clean up a subscription?" matches
 //               "return () => sub.unsubscribe()" — zero keyword overlap
 //   WEAKNESS  → "useLayoutEffect" looks similar to "useEffect" in vector
@@ -466,16 +474,18 @@ const HOW_IT_WORKS = `// ── WHY hybrid chunking? ─────────
 //   Uses only rank positions, not raw scores. Chunks in BOTH lists rise top.
 
 
-// ── WHY cross-encoder reranking? ────────────────────────────────────────────
+// ── WHY Voyage AI reranking? ─────────────────────────────────────────────────
 // Bi-encoder:   score = cosine(embed(q), embed(chunk))   ← independent
-// Cross-encoder: score = model(concat(question, "[SEP]", chunk))
-//   Reads both as a single sequence — full attention across the boundary.
-//   Trained on 8.8M (query, passage) pairs from Bing search logs (MS MARCO).
-//   Run only on top-20 from RRF — ~100x slower than bi-encoder but accurate.
+// Reranker:     score = model(question, chunk)           ← joint, hosted API
+//   Reads both together — full cross-attention across the boundary rather
+//   than comparing two independently-computed vectors.
+//   Run only on top-20 from RRF via Voyage's rerank-2.5-lite endpoint.
 //
-// confidence = sigmoid(raw_logit)   →   0–1 score
+// confidence = relevance_score returned directly by the API   →   0–1 score
 // filtered   = chunks[confidence >= 0.30][:6]
 // If best chunk < 0.25 → refuse to generate rather than hallucinate.
+//
+// UI badge on the best chunk's score: High >= 0.80, Medium >= 0.50, else Low.
 
 
 // ── Groq LLM generation (streamed via SSE) ──────────────────────────────────
@@ -686,7 +696,7 @@ export default function RagDemo() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ fontFamily: 'var(--font)', maxWidth: '76rem', '--rag-accent': accent, '--rag-accent-dim': `${accent}18` } as React.CSSProperties}>
+    <div className="rag-demo-root" style={{ fontFamily: 'var(--font)', maxWidth: '76rem', '--rag-accent': accent, '--rag-accent-dim': `${accent}18` } as React.CSSProperties}>
 
       <style>{`
         @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(.65)} }
@@ -725,25 +735,25 @@ export default function RagDemo() {
         /* ── How it works ───────────────────────────────────────────── */
         <div className="demo-how">
           <p style={{ color: 'var(--text)', fontWeight: 600 }}>
-            Hybrid RAG pipeline — vector search + BM25 + cross-encoder reranking
+            Hybrid RAG pipeline — vector search + BM25 + Voyage AI reranking
           </p>
           <p>
             Every question runs through a 5-stage pipeline that combines dense semantic search with sparse
-            keyword matching, merges the results with Reciprocal Rank Fusion, re-scores them with a
-            cross-encoder that reads question and chunk as a single sequence, then gates generation on
+            keyword matching, merges the results with Reciprocal Rank Fusion, re-scores them with Voyage
+            AI's hosted reranker, then gates generation on
             a minimum confidence threshold. You can see each stage fire live in the pipeline trace
             panel as you ask questions.
           </p>
           <pre className="code-block">{HOW_IT_WORKS}</pre>
           <p className="demo-stack-note">
-            Stack: ChromaDB · sentence-transformers (all-MiniLM-L6-v2) · BM25Okapi · ms-marco-MiniLM cross-encoder · Groq llama-3.1-8b-instant · FastAPI SSE · React
+            Stack: ChromaDB · Voyage AI (voyage-4-lite embeddings, rerank-2.5-lite) · BM25Okapi · Groq llama-3.1-8b-instant · FastAPI SSE · React
           </p>
         </div>
       ) : (
         /* ── Demo ───────────────────────────────────────────────────── */
         <div className="rag-two-col" style={{
           display: 'flex', gap: '0.75rem', alignItems: 'stretch',
-          height: 'calc(100vh - 19rem)',
+          flex: 1, minHeight: 0,
         }}>
 
           {/* ── Left: chat area ──────────────────────────────────────── */}

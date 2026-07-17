@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import telematics, audio, drone, galton, chat, rag
@@ -21,6 +22,13 @@ app.include_router(drone.router)
 app.include_router(galton.router)
 app.include_router(chat.router)
 app.include_router(rag.router)
+
+
+@app.on_event("startup")
+async def _start_idle_watchdogs():
+    asyncio.create_task(rag.idle_watchdog())
+    asyncio.create_task(audio.idle_watchdog())
+
 
 @app.get("/health")
 async def health():

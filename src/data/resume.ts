@@ -13,7 +13,7 @@ export const RESUME = {
 
   summary: 'Frontend engineer with 10+ years building high-scale enterprise UIs at Apple — now focused on AI product interfaces and hardware-adjacent UI: real-time LLM streaming, RAG retrieval, and control-loop visualization (PID, sensor telemetry), backed by a decade of dashboard work for 60,000+ daily users.',
 
-  stack: ['React', 'TypeScript', 'LLM Integration', 'RAG', 'Real-Time Systems', 'Three.js / WebGL'],
+  stack: ['React', 'TypeScript', 'LLM Integration', 'RAG', 'Real-Time Systems'],
 
   stats: [
     { value: '10+', label: 'Years Experience' },
@@ -24,8 +24,8 @@ export const RESUME = {
   builds: [
     {
       title: 'Docs RAG Assistant',
-      tag: 'RAG · ChromaDB · Cross-Encoder · Groq',
-      line: 'Hybrid vector + keyword retrieval with cross-encoder reranking and confidence-gated LLM generation — live pipeline trace shows every stage as it runs.',
+      tag: 'RAG · ChromaDB · Voyage AI Rerank · Groq',
+      line: 'Hybrid vector + keyword retrieval with Voyage AI reranking and confidence-gated LLM generation — live pipeline trace shows every stage as it runs.',
     },
     {
       title: 'Drone PID Controller',
@@ -43,12 +43,12 @@ export const RESUME = {
     {
       level: 'Core Skillset',
       description: '',
-      items: ['TypeScript', 'React', 'LLM Integration', 'RAG', 'WebSocket', 'SSE', 'Three.js / WebGL', 'Redux Toolkit', 'D3.js', 'AG Grid', 'Canvas 2D', 'CSS / LESS / SASS', 'Tailwind', 'Vite', 'Accessibility', 'Playwright', 'Jest'],
+      items: ['TypeScript', 'React', 'LLM Integration', 'RAG', 'WebSocket', 'SSE', 'Redux Toolkit', 'D3.js', 'AG Grid', 'Canvas 2D', 'CSS / LESS / SASS', 'Tailwind', 'Vite', 'Accessibility', 'Playwright', 'Jest'],
     },
     {
       level: 'Also worked with',
       description: '',
-      items: ['Python', 'FastAPI', 'PID Control', 'Physics Simulation', 'Java', 'Spring Boot', 'SQL', 'Snowflake', 'Oracle', 'Splunk', 'Tableau', 'AWS', 'Docker', 'Kubernetes', 'Redis'],
+      items: ['Python', 'FastAPI', 'Three.js / WebGL', 'PID Control', 'Physics Simulation', 'Java', 'Spring Boot', 'SQL', 'Snowflake', 'Oracle', 'Splunk', 'Tableau', 'AWS', 'Docker', 'Kubernetes', 'Redis'],
     },
   ],
 

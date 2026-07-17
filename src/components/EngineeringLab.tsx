@@ -3,7 +3,7 @@ import { useRouter } from '../contexts/RouterContext'
 import { useNavSection } from '../hooks/useNavSection'
 
 const EXPERIMENTS = [
-  { id: 'rag',         title: 'Docs RAG Assistant',       subtitle: 'RAG · ChromaDB · BM25 · Cross-Encoder · Groq'    },
+  { id: 'rag',         title: 'Docs RAG Assistant',       subtitle: 'RAG · ChromaDB · BM25 · Voyage AI Rerank · Groq' },
   { id: 'speech',      title: 'Speech Visualizer',        subtitle: 'Web Audio API · Whisper · Canvas'             },
   { id: 'reco',        title: 'Recommendation Engine',    subtitle: 'User-Based Recommendations · KNN · TypeScript'   },
   { id: 'drive-score', title: 'Drive Score Simulator',    subtitle: 'WebSocket · FastAPI · Physics Engine'         },

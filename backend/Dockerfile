@@ -16,18 +16,7 @@ ENV HOME=/home/user \
 WORKDIR /home/user/app
 
 COPY --chown=user requirements.txt .
-# CPU-only torch build — the default PyPI wheel pulls in CUDA runtime
-# libraries that inflate both image size and resident memory, which
-# matters on Render's 512MB free tier.
-RUN pip install --no-cache-dir --user torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir --user -r requirements.txt
-
-# Bake RAG model weights into the image so cold starts don't re-download
-# them from the Hugging Face Hub every time the free-tier disk resets.
-RUN python -c "\
-from sentence_transformers import SentenceTransformer, CrossEncoder; \
-SentenceTransformer('all-MiniLM-L6-v2'); \
-CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-2-v2')"
 
 COPY --chown=user . .
 

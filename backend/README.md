@@ -1,6 +1,6 @@
 # Backend
 
-FastAPI backend for sasideep.com — WebSocket telemetry demos, Whisper audio streaming, and a RAG pipeline (vector + BM25 + cross-encoder rerank → Groq LLM).
+FastAPI backend for sasideep.com — WebSocket telemetry demos, Whisper audio streaming, and a RAG pipeline (vector + BM25 + Voyage AI rerank → Groq LLM).
 
 See the [root README](../README.md) for the full project overview, local setup, and deployment notes.
 
@@ -19,5 +19,6 @@ See the [root README](../README.md) for the full project overview, local setup, 
 
 | Variable | Required for |
 |---|---|
-| `GROQ_API_KEY` | RAG assistant + chat widget LLM calls |
+| `GROQ_API_KEY` | RAG assistant + chat widget LLM calls, Whisper transcription |
+| `VOYAGE_API_KEY` | RAG embeddings + reranking |
 | `PORT` | Set automatically by Render; defaults to `7860` |

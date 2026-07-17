@@ -649,9 +649,13 @@ export default function GaltonDemo() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
 
+    let lastW = -1, lastH = -1
     const resize = () => {
-      canvas.width  = canvas.offsetWidth  * devicePixelRatio
-      canvas.height = canvas.offsetHeight * devicePixelRatio
+      const w = canvas.offsetWidth, h = canvas.offsetHeight
+      if (w === lastW && h === lastH) return  // avoid redundant bitmap reset/clear
+      lastW = w; lastH = h
+      canvas.width  = w * devicePixelRatio
+      canvas.height = h * devicePixelRatio
       ctx.scale(devicePixelRatio, devicePixelRatio)
     }
     resize()
@@ -835,7 +839,7 @@ z_score(bin) = (bin − mean) / std_dev
           <div style={{ flex: 1, minWidth: 0, maxWidth: 580, display: 'flex', flexDirection: 'column' }}>
             <canvas
               ref={canvasRef}
-              style={{ width: '100%', flex: '1 1 0', height: 'calc(100vh - 17rem)', display: 'block', borderRadius: '0.5rem',
+              style={{ width: '100%', flex: '1 1 0', height: 'calc(100svh - 17rem)', display: 'block', borderRadius: '0.5rem',
                 border: '1px solid var(--border)', background: 'var(--bg)' }}
               aria-label="Galton board simulation"
               role="img"
@@ -843,7 +847,7 @@ z_score(bin) = (bin − mean) / std_dev
           </div>
 
           {/* ── Right sidebar ────────────────────────────────────── */}
-          <div className="demo-two-col__sidebar" style={{ maxHeight: 'calc(100vh - 17rem)', overflowY: 'hidden' }}>
+          <div className="demo-two-col__sidebar" style={{ maxHeight: 'calc(100svh - 17rem)', overflowY: 'hidden' }}>
 
             {/* ── Action buttons — top ──────────────────────────────── */}
             <div className="demo-action-bar" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flexShrink: 0 }}>

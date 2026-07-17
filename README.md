@@ -8,7 +8,7 @@ Personal portfolio site for Sasideep Kakumani, Senior Full-Stack Engineer. Vite 
 
 **Frontend** — React 18, TypeScript, Vite, D3.js, Three.js, AG Grid / AG Charts, Recharts, react-grid-layout. No CSS framework — hand-written CSS with theme-driven custom properties.
 
-**Backend** — FastAPI (Python), WebSockets, served via Docker on Render. RAG pipeline uses ChromaDB, BM25 (`rank-bm25`), Sentence-Transformers, a cross-encoder reranker, and Groq for LLM inference. Audio demo uses `faster-whisper`.
+**Backend** — FastAPI (Python), WebSockets, served via Docker on Render. RAG pipeline uses ChromaDB, BM25 (`rank-bm25`), Voyage AI (hosted embeddings + reranker), and Groq for LLM inference. Audio demo uses Groq-hosted Whisper with a `faster-whisper` fallback.
 
 ## Project structure
 
@@ -29,8 +29,8 @@ backend/
 
 ## Engineering Lab demos
 
-- **Docs RAG Assistant** — hybrid vector + BM25 retrieval, reciprocal rank fusion, cross-encoder reranking, Groq-streamed answers over React/TypeScript/Vite/FastAPI docs.
-- **Speech Visualizer** — Web Audio API waveform/frequency visualization with Whisper transcription.
+- **Docs RAG Assistant** — hybrid vector + BM25 retrieval, reciprocal rank fusion, Voyage AI reranking, Groq-streamed answers over React/TypeScript/Vite/FastAPI docs.
+- **Speech Visualizer** — Web Audio API waveform/frequency visualization with Whisper transcription (Groq-hosted, faster-whisper fallback).
 - **Recommendation Engine** — user-based KNN recommendations, client-side.
 - **Drive Score Simulator** — WebSocket-driven physics simulation with a live telemetry console.
 - **Drone PID Controller** — PID control loop rendered on Canvas 2D, driven over WebSocket.
@@ -47,7 +47,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-Copy `.env.example` to `.env` and point `VITE_API_BASE_URL` at your backend (defaults to `http://localhost:8000`).
+Copy `.env.example` to `.env` and point `VITE_API_BASE_URL` at your backend (defaults to `http://localhost:7860`).
 
 ```bash
 npm run build         # tsc + vite build
@@ -59,12 +59,11 @@ npm run preview       # preview the production build
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU-only build
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 7860
 ```
 
-Set `GROQ_API_KEY` in the environment (or a `backend/.env` file) to enable the RAG assistant and chat demos.
+Set `GROQ_API_KEY` and `VOYAGE_API_KEY` in the environment (or a `backend/.env` file) to enable the RAG assistant and chat demos.
 
 To rebuild the RAG index from scratch:
 
@@ -83,4 +82,4 @@ docker run -p 7860:7860 -e GROQ_API_KEY=... portfolio-backend
 ## Deployment
 
 - **Frontend** — Vercel, auto-deployed from `main` (`vercel.json` handles the SPA rewrite).
-- **Backend** — Render, built from `backend/Dockerfile`. Pinned to a CPU-only PyTorch build and single-threaded BLAS env vars to fit the free tier's memory budget.
+- **Backend** — Render, built from `backend/Dockerfile`. Embedding/reranking is offloaded to Voyage AI and LLM inference to Groq — no local models loaded, keeping the container's memory footprint small on the free tier.

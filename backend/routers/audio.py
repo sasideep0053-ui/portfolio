@@ -1,6 +1,10 @@
 from __future__ import annotations
 import asyncio
+import io
 import json
+import os
+import time
+import wave
 import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -10,25 +14,61 @@ SAMPLE_RATE   = 16000
 WAVEFORM_BINS = 256   # downsampled samples sent per chunk for waveform display
 SPECTRUM_BINS = 128   # FFT bins sent for spectrum display
 
-_whisper_model    = None
 _librosa_available = False
 
+# Local Whisper is a FALLBACK ONLY — used when the Groq API call fails or no
+# key is set. Lazy-loaded, so it costs nothing unless the cloud path breaks.
+_whisper_model = None
+_load_lock     = asyncio.Lock()
+IDLE_UNLOAD_SECONDS = 600
+_last_used = 0.0
 
-def _load_models():
-    global _whisper_model, _librosa_available
+# Caps concurrent transcription passes (cloud calls or local fallback alike).
+_infer_sem = asyncio.Semaphore(2)
+
+
+def _touch() -> None:
+    global _last_used
+    _last_used = time.time()
+
+
+def _check_librosa() -> bool:
+    global _librosa_available
     try:
         import librosa  # noqa: F401
         _librosa_available = True
     except ImportError:
-        pass
+        _librosa_available = False
+    return _librosa_available
 
+
+def _load_local_whisper() -> None:
+    global _whisper_model
     if _whisper_model is None:
         try:
             from faster_whisper import WhisperModel
-            # "base" gives noticeably better accuracy than "tiny"
+            print('[audio] Loading local Whisper fallback (Groq unavailable)')
             _whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
         except Exception:
             pass
+
+
+def _unload_local_whisper() -> None:
+    global _whisper_model
+    if _whisper_model is None:
+        return
+    print('[audio] Idle — unloading local Whisper fallback to free memory')
+    _whisper_model = None
+    import gc
+    gc.collect()
+
+
+async def idle_watchdog() -> None:
+    while True:
+        await asyncio.sleep(60)
+        if _whisper_model is not None and _last_used and time.time() - _last_used > IDLE_UNLOAD_SECONDS:
+            async with _load_lock:
+                await asyncio.get_event_loop().run_in_executor(None, _unload_local_whisper)
 
 
 # ── Pitch ────────────────────────────────────────────────────────────────
@@ -113,24 +153,54 @@ def compute_waveform(pcm: np.ndarray, n_out: int = WAVEFORM_BINS) -> list:
     return [round(float(v / peak), 4) for v in samples]
 
 
-# ── Transcription ────────────────────────────────────────────────────────
+# ── Transcription — Groq-hosted Whisper first, local model as fallback ──────
+def _pcm_to_wav_bytes(pcm: np.ndarray, sr: int = SAMPLE_RATE) -> bytes:
+    pcm16 = np.clip(pcm * 32767, -32768, 32767).astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        wf.writeframes(pcm16.tobytes())
+    return buf.getvalue()
+
+
+def _transcribe_cloud(pcm: np.ndarray, api_key: str) -> dict:
+    from groq import Groq
+    client = Groq(api_key=api_key)
+    wav_bytes = _pcm_to_wav_bytes(pcm)
+    result = client.audio.transcriptions.create(
+        file=("chunk.wav", wav_bytes),
+        model="whisper-large-v3-turbo",
+    )
+    text = (result.text or "").strip()
+    return {"text": text, "language": getattr(result, "language", "unknown") or "unknown", "language_prob": 1.0}
+
+
+def _transcribe_local(pcm: np.ndarray) -> dict | None:
+    _load_local_whisper()
+    if _whisper_model is None:
+        return None
+    segments, info = _whisper_model.transcribe(pcm.astype(np.float32), language=None, vad_filter=True)
+    text = " ".join(s.text for s in segments).strip()
+    return {"text": text, "language": info.language, "language_prob": round(info.language_probability, 3)}
+
+
 async def transcribe_chunk(pcm: np.ndarray) -> dict | None:
-    if _whisper_model is None or len(pcm) < SAMPLE_RATE * 0.3:
+    if len(pcm) < SAMPLE_RATE * 0.3:
         return None
 
-    loop = asyncio.get_event_loop()
+    loop    = asyncio.get_event_loop()
+    api_key = os.getenv("GROQ_API_KEY")
 
-    def _run():
-        segments, info = _whisper_model.transcribe(
-            pcm.astype(np.float32),
-            language=None,
-            vad_filter=True,
-        )
-        text = " ".join(s.text for s in segments).strip()
-        return {"text": text, "language": info.language, "language_prob": round(info.language_probability, 3)}
+    if api_key:
+        try:
+            return await loop.run_in_executor(None, _transcribe_cloud, pcm, api_key)
+        except Exception as exc:
+            print(f'[audio] Groq transcription failed ({exc}) — falling back to local Whisper')
 
     try:
-        return await loop.run_in_executor(None, _run)
+        return await loop.run_in_executor(None, _transcribe_local, pcm)
     except Exception:
         return None
 
@@ -148,15 +218,17 @@ async def _send(ws: WebSocket, payload: dict) -> bool:
 @router.websocket("/ws/audio")
 async def audio_ws(ws: WebSocket):
     await ws.accept()
-    _load_models()
+    _check_librosa()
 
-    if not await _send(ws, {"type": "ready", "whisper": _whisper_model is not None, "librosa": _librosa_available}):
+    # Transcription is available either way — Groq cloud path when the key is
+    # set, local Whisper fallback otherwise/on failure.
+    if not await _send(ws, {"type": "ready", "whisper": True, "librosa": _librosa_available}):
         return
 
     pitch_buffer:      list[np.ndarray] = []
     transcribe_buffer: list[np.ndarray] = []
     transcribe_samples = 0
-    TRANSCRIBE_EVERY   = SAMPLE_RATE // 2   # 500 ms
+    TRANSCRIBE_EVERY   = SAMPLE_RATE * 2   # 2 s — batches fewer, more worthwhile Groq calls
 
     try:
         while True:
@@ -179,6 +251,8 @@ async def audio_ws(ws: WebSocket):
             if len(chunk) == 0:
                 continue
 
+            _touch()
+
             # Rolling pitch buffer (~1 s)
             pitch_buffer.append(chunk)
             if len(pitch_buffer) > 10:
@@ -199,12 +273,13 @@ async def audio_ws(ws: WebSocket):
             }):
                 break
 
-            # Transcription every 500 ms
+            # Transcription every 2 s (see TRANSCRIBE_EVERY)
             transcribe_buffer.append(chunk)
             transcribe_samples += len(chunk)
             if transcribe_samples >= TRANSCRIBE_EVERY:
-                pcm_full   = np.concatenate(transcribe_buffer)
-                transcript = await transcribe_chunk(pcm_full)
+                pcm_full = np.concatenate(transcribe_buffer)
+                async with _infer_sem:
+                    transcript = await transcribe_chunk(pcm_full)
                 if transcript and transcript["text"]:
                     if not await _send(ws, {"type": "transcript", **transcript}):
                         break
