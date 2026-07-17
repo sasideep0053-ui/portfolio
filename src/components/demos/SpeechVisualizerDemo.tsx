@@ -31,9 +31,9 @@ export default function SpeechVisualizerDemo() {
   const [showHow,      setShowHow]      = useState(false)
   const [timeLeft,     setTimeLeft]     = useState(MAX_DURATION)
   const [displayText,  setDisplayText]  = useState('')
-  const [backendReady, setBackendReady] = useState(false)
   const [backendReachable, setBackendReachable] = useState(false)
   const [micError,     setMicError]     = useState<string | null>(null)
+  const [transcribeError, setTranscribeError] = useState<string | null>(null)
 
   // Health check on mount — backend required, no offline fallback
   useEffect(() => {
@@ -71,12 +71,12 @@ export default function SpeechVisualizerDemo() {
 
   const { status, lastMessage, connect, disconnect, wsRef } = useWebSocket(WS_URL)
   const wsOnline = status === 'connected'
+  const backendOnline = wsOnline || backendReachable
 
   useEffect(() => {
     if (!lastMessage) return
     const msg = JSON.parse(lastMessage)
     if (msg.type === 'ready') {
-      setBackendReady(true)
       devLog('SPEECH', 'backend ready — Whisper model loaded')
     } else if (msg.type === 'chunk') {
       waveformBufRef.current = msg.waveform
@@ -92,6 +92,7 @@ export default function SpeechVisualizerDemo() {
         }
       }
     } else if (msg.type === 'transcript' && msg.text?.trim()) {
+      setTranscribeError(null)
       const elapsed = +(( Date.now() - startTRef.current) / 1000).toFixed(2)
       const trimmed = msg.text.trim()
       transcriptEventsRef.current.push({ t: elapsed, text: trimmed })
@@ -111,6 +112,9 @@ export default function SpeechVisualizerDemo() {
           typingRef.current = null
         }
       }, 25)
+    } else if (msg.type === 'transcript_error') {
+      setTranscribeError(msg.message)
+      devLog('WHISPER', `transcription unavailable: ${msg.message}`)
     }
   }, [lastMessage])
 
@@ -330,7 +334,6 @@ export default function SpeechVisualizerDemo() {
     disconnect()
     setRecording(false)
     setTimeLeft(MAX_DURATION)
-    setBackendReady(false)
     devLog('SPEECH', 'recording stopped')
   }, [teardown, disconnect, wsRef])
 
@@ -341,6 +344,7 @@ export default function SpeechVisualizerDemo() {
   const start = useCallback(async () => {
     if (recording) return
     setMicError(null)
+    setTranscribeError(null)
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
@@ -421,14 +425,12 @@ export default function SpeechVisualizerDemo() {
             }}
           >How it works</button>
         </div>
-        <span style={{
-          fontSize: '0.625rem', padding: '2px 8px', borderRadius: 99,
-          background: wsOnline ? `${accent}22` : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${wsOnline && backendReady ? accent : backendReachable ? 'var(--border)' : '#ef444455'}`,
-          color: wsOnline && backendReady ? accent : backendReachable ? 'var(--text-2)' : '#ef4444',
-        }}>
-          {wsOnline && backendReady ? '● backend ready' : wsOnline ? '○ connecting…' : backendReachable ? '○ offline' : '○ backend required'}
-        </span>
+        {backendOnline && (
+          <span style={{
+            fontSize: '0.625rem', padding: '2px 8px', borderRadius: 99,
+            background: `${accent}22`, border: `1px solid ${accent}`, color: accent,
+          }}>● LIVE</span>
+        )}
       </div>
 
       {showHow ? (
@@ -475,12 +477,11 @@ dBFS = 20 × log10(rms)                  // 0 = clipping
 
 // ── Transcription (backend) ───────────────────────────
 16-bit PCM chunks → WebSocket → FastAPI (buffered ~2s)
-  → Groq-hosted Whisper (whisper-large-v3-turbo), falling back to
-    a local faster-whisper (base, int8) model if Groq is unreachable
+  → Groq-hosted Whisper (whisper-large-v3-turbo)
   → sent back as { type: "transcript", text: "...", language: "..." }
   → animated typewriter effect in the transcript box`}</pre>
           <p className="demo-stack-note">
-            Stack: React · Web Audio API · ScriptProcessorNode · WebSocket (FastAPI/Python) · Groq Whisper API (faster-whisper fallback) · Canvas 2D
+            Stack: React · Web Audio API · ScriptProcessorNode · WebSocket (FastAPI/Python) · Groq Whisper API · Canvas 2D
           </p>
         </div>
       ) : (
@@ -651,6 +652,12 @@ dBFS = 20 × log10(rms)                  // 0 = clipping
               </span>
             )}
           </div>
+
+          {transcribeError && (
+            <div role="alert" style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: 6 }}>
+              Transcription unavailable — {transcribeError}
+            </div>
+          )}
 
         </>
       )}

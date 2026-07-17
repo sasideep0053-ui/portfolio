@@ -25,9 +25,8 @@ app.include_router(rag.router)
 
 
 @app.on_event("startup")
-async def _start_idle_watchdogs():
+async def _start_idle_watchdog():
     asyncio.create_task(rag.idle_watchdog())
-    asyncio.create_task(audio.idle_watchdog())
 
 
 @app.get("/health")
