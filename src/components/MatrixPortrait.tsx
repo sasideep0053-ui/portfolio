@@ -109,11 +109,8 @@ export default function MatrixPortrait({
     let revealTriggered = false
     let stopTimer = 0, autoRevealTimer = 0
 
-    // Touch devices tend to have weaker GPUs for canvas filter/shadowBlur work —
-    // halve the frame rate there so it's smoother instead of janky, at the cost
-    // of the animation itself playing at half speed.
+    // Touch devices tend to have weaker GPUs for canvas filter/shadowBlur work.
     const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-    let frameCount = 0
     // shadowBlur is the single most expensive Canvas 2D primitive here — skip
     // the glow entirely on touch devices rather than paying for it every frame.
     const glow = (px: number) => isTouchDevice ? 0 : px
@@ -197,10 +194,6 @@ export default function MatrixPortrait({
     // ── Tick ───────────────────────────────────────────────────────────────
     const tick = () => {
       if (!running) return
-      if (isTouchDevice) {
-        frameCount++
-        if (frameCount % 2 !== 0) { animId = requestAnimationFrame(tick); return }
-      }
       const [ar,ag,ab] = hexToRgb(accentRef.current)
 
       // ── SPIRAL (blue) — rotating Archimedean spiral ─────────────────────────

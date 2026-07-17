@@ -1,5 +1,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Mobile Safari/Chrome momentarily reveal the raw page canvas beyond the
+   .theme-root div during fast/elastic overscroll — ThemeContext keeps
+   html's inline background in sync with .theme-root's resolved --bg at
+   runtime; this is just the static fallback for the initial paint before
+   that effect runs. */
+html { background: #03050d; }
+body { background: inherit; }
+
 /* ─── Tokens: Dark (default) ──────────────────── */
 .theme-root {
   --bg:          #0a0a0a;
@@ -874,7 +882,10 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
     padding-bottom 0.3s ease var(--row-delay, 0ms);
 }
 .skills__list.visible .skill-row__tags {
-  max-height: 200px; padding-bottom: 2px;
+  /* Just a ceiling for the open transition, not a real constraint — must
+     clear the tallest possible wrap (16 tags, one per line on narrow
+     screens) or the tail of the list silently clips under overflow:hidden. */
+  max-height: 700px; padding-bottom: 2px;
 }
 .skill-tag {
   display: inline-block; padding: 5px 13px; border-radius: 50px;
@@ -1844,8 +1855,12 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
 
 @media (max-width: 768px) {
   .hero { flex-direction: column; gap: 2.5rem; padding-top: calc(var(--nav-h) + 2rem); }
-  .hero__portrait { width: clamp(180px, 55vw, 280px); }
-  .hero__name    { font-size: clamp(40px, 12vw, 64px); }
+  .hero__portrait { width: clamp(180px, 55vw, 280px); }  .hero__name    { font-size: clamp(40px, 12vw, 64px); }
+  /* Skills: fixed 210px header column leaves tags almost no width to wrap
+     into on narrow screens — stack header above tags so they get the full
+     row width instead. */
+  .skill-row { flex-direction: column; gap: 10px; }
+  .skill-row__header { width: 100%; }
   .hero__actions { flex-direction: column; align-items: center; }
   .hero__actions .btn { padding: 9px 24px; font-size: 0.875rem; }
   .scroll-nav { display: none; }

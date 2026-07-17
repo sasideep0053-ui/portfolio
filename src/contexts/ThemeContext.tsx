@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { devLog } from '../lib/devLog'
 
 export type Theme     = 'dark' | 'light'
@@ -58,6 +58,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setFontSizeState(s)
     localStorage.setItem('fontSize', s)
   }
+
+  // Mirror the active theme's resolved --bg onto <html> too. Needed because
+  // .theme-root is a div, not <html>/<body> — so on mobile, fast/elastic
+  // overscroll can scroll past its bounds and flash the browser's default
+  // white background. Reads --bg's already-resolved value (single source of
+  // truth is still the .theme-root CSS below) rather than duplicating colors.
+  useEffect(() => {
+    const root = document.querySelector('.theme-root')
+    if (!root) return
+    const bg = getComputedStyle(root).getPropertyValue('--bg').trim()
+    if (bg) document.documentElement.style.backgroundColor = bg
+  }, [theme, colorTheme])
 
   // data-theme, data-color, data-font are all React-managed attributes on the wrapper div
   return (

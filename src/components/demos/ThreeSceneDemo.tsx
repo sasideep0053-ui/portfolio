@@ -507,6 +507,9 @@ export default function ThreeSceneDemo() {
     const ro = new ResizeObserver(() => {
       const { clientWidth: w, clientHeight: h } = mount
       renderer.setSize(w, h); composer.setSize(w, h)
+      // composer.setSize() resets every pass — including bloom — to full
+      // resolution, so re-apply the touch-device downscale after it runs.
+      bloom.setSize(w * bloomScale, h * bloomScale)
       camera.aspect = w / h; camera.updateProjectionMatrix()
     })
     ro.observe(mount)
