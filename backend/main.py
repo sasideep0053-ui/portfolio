@@ -27,6 +27,11 @@ app.include_router(rag.router)
 @app.on_event("startup")
 async def _start_idle_watchdog():
     asyncio.create_task(rag.idle_watchdog())
+    # librosa's first import is slow (numpy/scipy/numba) and would otherwise
+    # block the event loop on a real user's first /ws/audio connection —
+    # pay that cost once here instead, before the app takes traffic.
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, audio._check_librosa)
 
 
 @app.get("/health")

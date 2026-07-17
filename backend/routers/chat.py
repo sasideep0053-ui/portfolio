@@ -86,6 +86,19 @@ class ChatRequest(BaseModel):
     messages: list[Message]
 
 
+# Reused across requests — a fresh AsyncGroq/httpx client per query leaks
+# an unclosed connection pool, adding up over repeated use.
+_groq_client = None
+
+
+def _get_groq_client(api_key: str):
+    global _groq_client
+    if _groq_client is None:
+        from groq import AsyncGroq
+        _groq_client = AsyncGroq(api_key=api_key)
+    return _groq_client
+
+
 @router.post("/api/chat/stream")
 async def chat_stream(req: ChatRequest, request: Request):
     ip = request.client.host if request.client else "unknown"
@@ -100,14 +113,13 @@ async def chat_stream(req: ChatRequest, request: Request):
         return StreamingResponse(no_key(), media_type="text/event-stream")
 
     try:
-        from groq import AsyncGroq
+        client = _get_groq_client(api_key)
     except ImportError:
         async def no_lib():
             yield f"data: {json.dumps({'token': 'Run: pip install groq  to enable the chat endpoint.'})}\n\n"
             yield "data: [DONE]\n\n"
         return StreamingResponse(no_lib(), media_type="text/event-stream")
 
-    client = AsyncGroq(api_key=api_key)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         *[{"role": m.role, "content": m.content} for m in req.messages],

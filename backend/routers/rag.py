@@ -49,6 +49,7 @@ _all_docs:  list[str]  = []
 _all_metas: list[dict] = []
 
 _voyage_client = None
+_groq_client   = None
 
 
 def _get_voyage_client():
@@ -57,6 +58,16 @@ def _get_voyage_client():
         import voyageai
         _voyage_client = voyageai.Client(api_key=os.environ['VOYAGE_API_KEY'])
     return _voyage_client
+
+
+def _get_groq_client(api_key: str):
+    # Reused across requests — a fresh AsyncGroq/httpx client per query leaks
+    # an unclosed connection pool, adding up over repeated use.
+    global _groq_client
+    if _groq_client is None:
+        from groq import AsyncGroq
+        _groq_client = AsyncGroq(api_key=api_key)
+    return _groq_client
 
 
 def _embed_query(question: str) -> list[float]:
@@ -351,8 +362,7 @@ async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
     prompt  = f'{system}\n\nContext:\n{context}\n\nQuestion: {question}\nAnswer:'
 
     try:
-        from groq import AsyncGroq
-        client = AsyncGroq(api_key=api_key)
+        client = _get_groq_client(api_key)
         stream = await client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[{'role': 'user', 'content': prompt}],

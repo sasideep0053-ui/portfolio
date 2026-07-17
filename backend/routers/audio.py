@@ -112,6 +112,19 @@ def compute_waveform(pcm: np.ndarray, n_out: int = WAVEFORM_BINS) -> list:
 
 
 # ── Transcription — Groq-hosted Whisper only (no local fallback) ───────────
+_groq_client = None
+
+
+def _get_groq_client(api_key: str):
+    # Reused across chunks — a fresh Groq/httpx client every ~2s during a
+    # recording session leaks an unclosed connection pool, adding up fast.
+    global _groq_client
+    if _groq_client is None:
+        from groq import Groq
+        _groq_client = Groq(api_key=api_key)
+    return _groq_client
+
+
 def _pcm_to_wav_bytes(pcm: np.ndarray, sr: int = SAMPLE_RATE) -> bytes:
     pcm16 = np.clip(pcm * 32767, -32768, 32767).astype(np.int16)
     buf = io.BytesIO()
@@ -124,8 +137,7 @@ def _pcm_to_wav_bytes(pcm: np.ndarray, sr: int = SAMPLE_RATE) -> bytes:
 
 
 def _transcribe_cloud(pcm: np.ndarray, api_key: str) -> dict:
-    from groq import Groq
-    client = Groq(api_key=api_key)
+    client = _get_groq_client(api_key)
     wav_bytes = _pcm_to_wav_bytes(pcm)
     result = client.audio.transcriptions.create(
         file=("chunk.wav", wav_bytes),
