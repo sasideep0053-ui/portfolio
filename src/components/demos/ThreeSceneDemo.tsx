@@ -198,7 +198,7 @@ export default function ThreeSceneDemo() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouchDevice ? 1.5 : 2))
     renderer.setSize(mount.clientWidth, mount.clientHeight)
     renderer.shadowMap.enabled  = !isTouchDevice
-    renderer.shadowMap.type     = THREE.PCFSoftShadowMap
+    renderer.shadowMap.type     = THREE.VSMShadowMap
     renderer.toneMapping        = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.0
     renderer.outputColorSpace   = THREE.SRGBColorSpace
