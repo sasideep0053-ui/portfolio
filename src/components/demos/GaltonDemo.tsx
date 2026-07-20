@@ -650,13 +650,16 @@ export default function GaltonDemo() {
     const ctx = canvas.getContext('2d')!
 
     let lastW = -1, lastH = -1
+    // Clamp DPR — retina phones (3x) would otherwise triple the pixel-shading
+    // cost of every bead/peg draw for no visible quality gain at this size.
+    const dpr = Math.min(devicePixelRatio, 2)
     const resize = () => {
       const w = canvas.offsetWidth, h = canvas.offsetHeight
       if (w === lastW && h === lastH) return  // avoid redundant bitmap reset/clear
       lastW = w; lastH = h
-      canvas.width  = w * devicePixelRatio
-      canvas.height = h * devicePixelRatio
-      ctx.scale(devicePixelRatio, devicePixelRatio)
+      canvas.width  = w * dpr
+      canvas.height = h * dpr
+      ctx.scale(dpr, dpr)
     }
     resize()
     const ro = new ResizeObserver(resize)

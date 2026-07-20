@@ -117,6 +117,9 @@ export default function StarField() {
 
     let raf: number
     let W = 0, H = 0
+    // Clamp DPR — retina phones (3x) would otherwise triple the pixel-shading
+    // cost of every gradient/arc fill for no visible quality gain at this size.
+    const dpr = Math.min(devicePixelRatio, 2)
 
     const galaxies: Galaxy[] = GALAXY_DEFS.map(def => ({
       ...def,
@@ -132,9 +135,9 @@ export default function StarField() {
       W = canvas.offsetWidth
       H = canvas.offsetHeight
       if (!W || !H) return
-      canvas.width  = W * devicePixelRatio
-      canvas.height = H * devicePixelRatio
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
+      canvas.width  = W * dpr
+      canvas.height = H * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
       const base = Math.max(W, H)
       for (const g of galaxies) {
@@ -209,13 +212,12 @@ export default function StarField() {
       }
     }
 
-    const frame = () => {
+    const draw = (t: number, animating: boolean) => {
       ctx.clearRect(0, 0, W, H)
-      const t = Date.now() * 0.0014
 
       // Background stars (Fibonacci clusters + random fill)
       for (const s of bgStars) {
-        const tw    = 0.55 + 0.45 * Math.sin(t * 0.7 + s.phase)
+        const tw    = animating ? 0.55 + 0.45 * Math.sin(t * 0.7 + s.phase) : 0.85
         const alpha = s.a * (isLight ? 0.72 : 1.0) * tw
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
@@ -226,17 +228,31 @@ export default function StarField() {
       // Galaxies back-to-front
       for (let i = galaxies.length - 1; i >= 0; i--) {
         const g = galaxies[i]
-        g.rot += g.rotSpeed
+        if (animating) g.rot += g.rotSpeed
         drawGalaxy(g, t)
       }
+    }
 
+    const frame = () => {
+      draw(Date.now() * 0.0014, true)
       raf = requestAnimationFrame(frame)
     }
 
     setup()
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) { frame() }
+    // Touch/mobile devices: skip the rAF loop entirely (gradients + per-star
+    // draws every frame are the main mobile perf hit) and render one static frame.
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion || isTouchDevice) {
+      draw(0, false)
+    } else {
+      frame()
+    }
 
-    const ro = new ResizeObserver(setup)
+    const ro = new ResizeObserver(() => {
+      setup()
+      if (reducedMotion || isTouchDevice) draw(0, false)
+    })
     ro.observe(canvas)
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [accent, theme])

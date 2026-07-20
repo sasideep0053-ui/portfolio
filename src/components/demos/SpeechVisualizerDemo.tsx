@@ -119,7 +119,7 @@ export default function SpeechVisualizerDemo() {
   }, [lastMessage])
 
   const sizeCanvases = () => {
-    const dpr = window.devicePixelRatio || 1
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
     for (const ref of [waveformRef, spectrumRef, pitchCanRef, formantRef2, dbMeterRef]) {
       const c = ref.current
       if (!c) continue

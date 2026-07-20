@@ -129,7 +129,7 @@ export default function MatrixPortrait({
       lineW: 1 + Math.random() * 3.5,
       alpha: 0.18 + Math.random() * 0.48,
     })
-    const WAVE_COUNT = 16
+    const WAVE_COUNT = isTouchDevice ? 8 : 16
     let wavesList: Wave[] = Array.from({length: WAVE_COUNT}, (_, i) => makeWave(i, WAVE_COUNT))
     let waveFrame = 0
 
@@ -158,12 +158,16 @@ export default function MatrixPortrait({
       alpha: 0.3  + Math.random() * 0.65,
       pulse: Math.random() * Math.PI * 2,
     })
-    let nenParticles: NenParticle[] = Array.from({length: 160}, makeNenParticle)
+    // Touch devices: fewer particles — this mode's per-frame arc+fill loop
+    // is the heaviest untouched cost left after the shadowBlur/glow gating above.
+    const NEN_COUNT = isTouchDevice ? 60 : 160
+    let nenParticles: NenParticle[] = Array.from({length: NEN_COUNT}, makeNenParticle)
     let nenFrame = 0
 
     // domain frame counter (jjk)
     let flashFrame = 0
     let cursedParticles: CursedParticle[] = []
+    const MAX_CURSED = isTouchDevice ? 40 : 90
 
     // ── Spiral state (blue) ───────────────────────────────────────────────
     let spiralPath1: Path2D | null = null
@@ -514,7 +518,7 @@ export default function MatrixPortrait({
 
         if (!fadingOut) {
           for (let i = 0; i < 5; i++) {
-            if (cursedParticles.length < 90 && Math.random() < 0.82) {
+            if (cursedParticles.length < MAX_CURSED && Math.random() < 0.82) {
               cursedParticles.push({
                 x: Math.random() * width, y: Math.random() * height,
                 char: JJK_CHARS[Math.floor(Math.random() * JJK_CHARS.length)],
@@ -585,7 +589,7 @@ export default function MatrixPortrait({
       cursedParticles = []
       for (let i = 0; i < cols; i++) { drops[i] = -Math.random()*rows*0.2 - i*0.1; revealY[i] = 0 }
       wavesList    = Array.from({length: WAVE_COUNT}, (_, i) => makeWave(i, WAVE_COUNT))
-      nenParticles = Array.from({length: 160}, makeNenParticle)
+      nenParticles = Array.from({length: NEN_COUNT}, makeNenParticle)
       cancelAnimationFrame(animId)
       setRevealing(false); drawGhost()
       devLog('SYSTEM', autoRevealedRef.current

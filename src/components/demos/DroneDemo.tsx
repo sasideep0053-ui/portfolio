@@ -745,13 +745,16 @@ export default function DroneDemo() {
     const ctx  = canvas.getContext('2d')!
     const cctx = chart.getContext('2d')!
 
+    // Clamp DPR — retina phones (3x) would otherwise triple the pixel-shading
+    // cost of both canvases for no visible quality gain at this size.
+    const dpr = Math.min(devicePixelRatio, 2)
     const resize = () => {
-      canvas.width  = canvas.offsetWidth  * devicePixelRatio
-      canvas.height = canvas.offsetHeight * devicePixelRatio
-      chart.width   = chart.offsetWidth   * devicePixelRatio
-      chart.height  = chart.offsetHeight  * devicePixelRatio
-      ctx.scale(devicePixelRatio, devicePixelRatio)
-      cctx.scale(devicePixelRatio, devicePixelRatio)
+      canvas.width  = canvas.offsetWidth  * dpr
+      canvas.height = canvas.offsetHeight * dpr
+      chart.width   = chart.offsetWidth   * dpr
+      chart.height  = chart.offsetHeight  * dpr
+      ctx.scale(dpr, dpr)
+      cctx.scale(dpr, dpr)
     }
     resize()
     const ro = new ResizeObserver(resize)

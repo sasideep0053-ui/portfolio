@@ -401,11 +401,16 @@ export default function TelematicsDemo() {
 
     const now = Date.now()
 
-    // Throttle WS sends and event recording to 20Hz — visuals still update at 60fps
+    // Capture every physics tick into the buffer, unthrottled — this is what the
+    // end-of-drive report's peak-G/harsh-event stats are computed from, so it must
+    // never drop samples. A ref push is O(1) and stays cheap even at 100Hz+ ingestion.
+    const pt: Pt = { t: now, speed: next, g_force: gForceRef.current, lateral_g: latGRef.current }
+    eventsRef.current.push(pt)
+
+    // Paint (chart re-render) and the WS send are throttled to 20Hz independently of
+    // capture — neither the eye nor the network needs every tick, only the buffer does.
     if (now - lastSendRef.current >= 50) {
       lastSendRef.current = now
-      const pt: Pt = { t: now, speed: next, g_force: gForceRef.current, lateral_g: latGRef.current }
-      eventsRef.current.push(pt)
       setHistory(h => [...h.slice(-300), pt])
       send({ type: 'update', speed: next, steer: steerRef.current, timestamp: now })
     }

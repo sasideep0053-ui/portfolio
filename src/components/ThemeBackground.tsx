@@ -1563,8 +1563,12 @@ export default function ThemeBackground() {
 
   useEffect(() => {
     const mq  = window.matchMedia('(prefers-reduced-motion: reduce)')
+    // Touch devices: these backgrounds lean on blurred SVG filters (feGaussianBlur),
+    // which mobile browsers rasterize in software rather than on the GPU — pause
+    // the SMIL animations there the same way reduced-motion does.
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
     const svg = document.querySelector<SVGSVGElement>('.theme-bg__svg')
-    const apply = () => mq.matches ? svg?.pauseAnimations() : svg?.unpauseAnimations()
+    const apply = () => (mq.matches || isTouchDevice) ? svg?.pauseAnimations() : svg?.unpauseAnimations()
     apply()
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
