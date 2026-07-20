@@ -106,6 +106,7 @@ export default function MatrixPortrait({
     let img: HTMLImageElement|null = null
     let drawCoords = { sx:0, sy:0, sw:width, sh:height }
     let animId = 0, running = false, fadingOut = false
+    let prevTs = 0
     let revealTriggered = false
     let stopTimer = 0, autoRevealTimer = 0
 
@@ -149,6 +150,7 @@ export default function MatrixPortrait({
 
     // ── Ruins state (aot) ─────────────────────────────────────────────────
     let ruinsFrame = 0
+    let lastRuinsGridDraw = 0
     const makeNenParticle = (): NenParticle => ({
       x:     Math.random() * width,
       y:     Math.random() * height,
@@ -196,13 +198,20 @@ export default function MatrixPortrait({
     }
 
     // ── Tick ───────────────────────────────────────────────────────────────
-    const tick = () => {
+    const tick = (ts?: number) => {
       if (!running) return
+      const now = ts ?? performance.now()
+      // Normalize to 60Hz-frame-equivalents so every "frame" counter/increment
+      // below plays at the same real-world speed on 90Hz/120Hz phones as on 60Hz —
+      // without this, a 120Hz display runs the whole intro (and its reveal timing) 2x fast.
+      const dt = prevTs ? Math.min(now - prevTs, 50) : 1000 / 60
+      prevTs  = now
+      const k = dt / (1000 / 60)
       const [ar,ag,ab] = hexToRgb(accentRef.current)
 
       // ── SPIRAL (blue) — rotating Archimedean spiral ─────────────────────────
       if (cfg.mode === 'spiral') {
-        spiralFrame++
+        spiralFrame += k
         ctx.fillStyle = 'rgba(6,6,10,1)'; ctx.fillRect(0,0,width,height)
 
         // Lazy-init two interleaved spiral paths centered at origin
@@ -222,7 +231,7 @@ export default function MatrixPortrait({
         }
         const mR2 = Math.sqrt(cx*cx + cy*cy) * 1.10
         const lw  = (mR2 / (Math.PI * 2 * 22)) * Math.PI * 0.60
-        spiralPhase += 0.016
+        spiralPhase += 0.016 * k
         ctx.save(); ctx.translate(cx, cy); ctx.rotate(spiralPhase); ctx.lineCap = 'butt'
         ctx.lineWidth = lw; ctx.shadowBlur = 0
         ctx.strokeStyle = `rgba(${ar},${ag},${ab},0.72)`
@@ -245,27 +254,35 @@ export default function MatrixPortrait({
 
       // ── RUINS (aot) — flickering static block grid (chars stay in place, pulse) ──
       } else if (cfg.mode === 'ruins') {
-        ruinsFrame++
+        ruinsFrame += k
         ctx.fillStyle = 'rgba(6,6,10,0.10)'; ctx.fillRect(0,0,width,height)
 
         if (!fadingOut) {
           const RUINS_CHARS = '█▓▒░▪◼▫▤▥'
-          ctx.font = `${CHAR_SZ}px monospace`
-          // Touch devices: this mode's full-grid fillText scan is by far the
-          // heaviest per-frame cost in the file — thin the grid to a quarter
-          // of the cells there instead of skipping frames like the other modes.
-          const step = isTouchDevice ? 2 : 1
-          for (let row = 0; row < rows; row += step) {
-            for (let col = 0; col < cols; col += step) {
-              const rawB  = px ? brightness(px, col, row, cols, rows) : 0.25 + Math.random()*0.4
-              const edge  = edgeMap ? edgeMap[row*cols+col] : 0
-              const phase = col * 0.43 + row * 0.72
-              const flick = 0.18 + 0.68 * Math.abs(Math.sin(ruinsFrame * 0.016 + phase))
-              const b     = Math.min(1, (rawB + edge * 0.55) * flick)
-              if (b < 0.04) continue
-              const ci = Math.floor((1 - b) * (RUINS_CHARS.length - 0.01))
-              ctx.fillStyle = `rgba(${ar},${ag},${ab},${b * 0.82})`
-              ctx.fillText(RUINS_CHARS[ci], col * CHAR_SZ, (row + 1) * CHAR_SZ)
+          // fillText is by far the most expensive Canvas 2D primitive mobile
+          // Safari has to rasterize, and this mode calls it ~950 times/frame even
+          // with the spatial thinning below — cap the grid's actual redraw rate on
+          // touch devices to ~12fps. Only the flicker phase updates that slowly;
+          // the fade overlay above still runs every frame so it doesn't look stepped.
+          if (!isTouchDevice || now - lastRuinsGridDraw >= 80) {
+            lastRuinsGridDraw = now
+            ctx.font = `${CHAR_SZ}px monospace`
+            // Touch devices: this mode's full-grid fillText scan is by far the
+            // heaviest per-frame cost in the file — thin the grid to a quarter
+            // of the cells there instead of skipping frames like the other modes.
+            const step = isTouchDevice ? 2 : 1
+            for (let row = 0; row < rows; row += step) {
+              for (let col = 0; col < cols; col += step) {
+                const rawB  = px ? brightness(px, col, row, cols, rows) : 0.25 + Math.random()*0.4
+                const edge  = edgeMap ? edgeMap[row*cols+col] : 0
+                const phase = col * 0.43 + row * 0.72
+                const flick = 0.18 + 0.68 * Math.abs(Math.sin(ruinsFrame * 0.016 + phase))
+                const b     = Math.min(1, (rawB + edge * 0.55) * flick)
+                if (b < 0.04) continue
+                const ci = Math.floor((1 - b) * (RUINS_CHARS.length - 0.01))
+                ctx.fillStyle = `rgba(${ar},${ag},${ab},${b * 0.82})`
+                ctx.fillText(RUINS_CHARS[ci], col * CHAR_SZ, (row + 1) * CHAR_SZ)
+              }
             }
           }
         }
@@ -284,12 +301,12 @@ export default function MatrixPortrait({
 
       // ── NEN (hxh) — floating nen-aura particle field ─────────────────────
       } else if (cfg.mode === 'nen') {
-        nenFrame++
+        nenFrame += k
         ctx.fillStyle = 'rgba(6,6,10,0.045)'; ctx.fillRect(0,0,width,height)
 
         if (!fadingOut) {
           for (const p of nenParticles) {
-            p.x += p.vx; p.y += p.vy; p.pulse += 0.042
+            p.x += p.vx * k; p.y += p.vy * k; p.pulse += 0.042 * k
             if (p.y < -p.r * 4)       { p.x = Math.random()*width; p.y = height + p.r }
             if (p.x < -p.r * 4)         p.x = width  + p.r
             if (p.x > width + p.r * 4)  p.x = -p.r
@@ -338,7 +355,7 @@ export default function MatrixPortrait({
 
       // ── WAVES (demonslayer) — Water Breathing flowing ribbons ────────────
       } else if (cfg.mode === 'waves') {
-        waveFrame++
+        waveFrame += k
         ctx.fillStyle = 'rgba(6,6,10,0.05)'; ctx.fillRect(0,0,width,height)
 
         if (!fadingOut) {
@@ -374,7 +391,7 @@ export default function MatrixPortrait({
 
       // ── ELEMENTS (atla) — 4-element symbol grid ──────────────────────────
       } else if (cfg.mode === 'elements') {
-        elementFrame++
+        elementFrame += k
         ctx.fillStyle = 'rgba(6,6,10,0.04)'; ctx.fillRect(0,0,width,height)
 
         if (!fadingOut) {
@@ -423,7 +440,7 @@ export default function MatrixPortrait({
 
       // ── GRIMOIRE (blackclover) — concentric magic circles + pentagram ──────
       } else if (cfg.mode === 'grimoire') {
-        orbitFrame++
+        orbitFrame += k
         ctx.fillStyle = 'rgba(6,6,10,0.065)'; ctx.fillRect(0,0,width,height)
 
         if (!fadingOut) {
@@ -431,7 +448,7 @@ export default function MatrixPortrait({
 
           for (let ri = 0; ri < GRIMOIRE_RINGS.length; ri++) {
             const ring = GRIMOIRE_RINGS[ri]
-            grimoireAngles[ri] += ring.speed
+            grimoireAngles[ri] += ring.speed * k
             const angle = grimoireAngles[ri]
 
             // Draw rotating ring
@@ -513,7 +530,7 @@ export default function MatrixPortrait({
 
       // ── DOMAIN (jjk) — scattered cursed-kanji static + 茈 flash ─────────────
       } else if (cfg.mode === 'domain') {
-        flashFrame++
+        flashFrame += k
         ctx.fillStyle = 'rgba(6,6,10,0.14)'; ctx.fillRect(0,0,width,height)
 
         if (!fadingOut) {
@@ -530,7 +547,7 @@ export default function MatrixPortrait({
           }
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           for (let i = cursedParticles.length - 1; i >= 0; i--) {
-            const p = cursedParticles[i]; p.life++
+            const p = cursedParticles[i]; p.life += k
             const t = p.life / p.maxLife
             const fade = t < 0.2 ? t/0.2 : t > 0.6 ? 1-(t-0.6)/0.4 : 1
             ctx.font        = `${p.size}px monospace`
