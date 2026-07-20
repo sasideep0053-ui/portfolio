@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'
 import { LocaleProvider } from './contexts/LocaleContext'
 import { NavigationProvider } from './contexts/NavigationContext'
@@ -16,9 +16,13 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import StarField from './components/StarField'
 import ThemeBackground from './components/ThemeBackground'
-import LabPage from './components/LabPage'
-import ComponentsPage from './components/ComponentsPage'
 import ChatBubble from './components/ChatBubble'
+
+// Lazy-loaded: these pull in Three.js, AG Grid, AG Charts, and D3 — keeping
+// them out of the homepage bundle so a homepage visit doesn't pay for code
+// only /lab and /components visitors need.
+const LabPage        = lazy(() => import('./components/LabPage'))
+const ComponentsPage = lazy(() => import('./components/ComponentsPage'))
 
 const CUSTOM_BG_THEMES = new Set(['aot', 'blackclover', 'demonslayer', 'jjk', 'atla', 'hxh'])
 
@@ -73,7 +77,9 @@ function AppRoutes() {
         {bg}
         <Navbar />
         <ErrorBoundary colorTheme={colorTheme}>
-          <LabPage />
+          <Suspense fallback={null}>
+            <LabPage />
+          </Suspense>
           {import.meta.env.DEV && <DevErrorContent />}
         </ErrorBoundary>
       </>
@@ -86,7 +92,9 @@ function AppRoutes() {
         {bg}
         <Navbar />
         <ErrorBoundary colorTheme={colorTheme}>
-          <ComponentsPage />
+          <Suspense fallback={null}>
+            <ComponentsPage />
+          </Suspense>
           {import.meta.env.DEV && <DevErrorContent />}
         </ErrorBoundary>
       </>
