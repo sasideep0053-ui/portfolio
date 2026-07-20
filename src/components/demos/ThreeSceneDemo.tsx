@@ -230,7 +230,11 @@ export default function ThreeSceneDemo() {
     // ── Ground ─────────────────────────────────────────────────────────────
     const grassTex  = makeGrassTex()
     const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.92, metalness: 0 })
-    const groundGeo = new THREE.PlaneGeometry(200, 120, 120, 72)
+    // Halve the subdivision on touch — the displaced-hill silhouette barely
+    // changes at half density, but it's half the triangles submitted every frame.
+    const groundGeo = isTouchDevice
+      ? new THREE.PlaneGeometry(200, 120, 60, 36)
+      : new THREE.PlaneGeometry(200, 120, 120, 72)
     // Displace far-field vertices for rolling hills (local Y > 15 = world Z < -15, away from camera)
     const gPos = groundGeo.attributes.position as THREE.BufferAttribute
     for (let i = 0; i < gPos.count; i++) {
@@ -255,7 +259,8 @@ export default function ThreeSceneDemo() {
       const shade = new THREE.Color(0x7a9a6a)
         .lerp(new THREE.Color(0x9ab888), (idx * 0.37) % 1)
       const mat = new THREE.MeshStandardMaterial({ map: rockTex, color: shade, roughness: 0.86 + (idx % 3) * 0.04, metalness: 0 })
-      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 20 + idx), mat)
+      const segs = (isTouchDevice ? 10 : 20) + idx
+      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, segs), mat)
       m.position.set(x, h / 2 - 2, z); m.castShadow = true; m.receiveShadow = true
       scene.add(m)
     })
@@ -281,17 +286,24 @@ export default function ThreeSceneDemo() {
       })
 
     // ── Boulders ───────────────────────────────────────────────────────────
-    const boulderMat = new THREE.MeshStandardMaterial({ color: 0x6a6560, roughness: 0.93, metalness: 0 })
-    ;[[-4.5, 5.5, 0.70], [3.8, 6.0, 0.45], [-7.0, 3.5, 1.0], [5.5, 3.0, 0.35],
-      [-1.5, 7.0, 0.80], [5.8, 6.5, 0.55], [-5.5, 4.0, 0.50], [1.5, 4.0, 0.40]]
-      .forEach(([x, z, s], i) => {
-        const b = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), boulderMat)
-        b.position.set(x, -1 + s * 0.45, z)
-        b.rotation.set(i * 0.7, i * 1.3, i * 0.4)
-        b.scale.set(1 + (i % 3) * 0.18, 0.52 + (i % 4) * 0.12, 0.85 + (i % 3) * 0.14)
-        b.castShadow = true; b.receiveShadow = true
-        scene.add(b)
-      })
+    // Instanced — one draw call for all 8 instead of 8 separate meshes; each
+    // instance's size/rotation/position is baked into its own instance matrix.
+    const dummy = new THREE.Object3D()
+    const boulderMat  = new THREE.MeshStandardMaterial({ color: 0x6a6560, roughness: 0.93, metalness: 0 })
+    const boulderData: [number, number, number][] = [
+      [-4.5, 5.5, 0.70], [3.8, 6.0, 0.45], [-7.0, 3.5, 1.0], [5.5, 3.0, 0.35],
+      [-1.5, 7.0, 0.80], [5.8, 6.5, 0.55], [-5.5, 4.0, 0.50], [1.5, 4.0, 0.40],
+    ]
+    const boulders = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), boulderMat, boulderData.length)
+    boulders.castShadow = true; boulders.receiveShadow = true
+    boulderData.forEach(([x, z, s], i) => {
+      dummy.position.set(x, -1 + s * 0.45, z)
+      dummy.rotation.set(i * 0.7, i * 1.3, i * 0.4)
+      dummy.scale.set(s * (1 + (i % 3) * 0.18), s * (0.52 + (i % 4) * 0.12), s * (0.85 + (i % 3) * 0.14))
+      dummy.updateMatrix()
+      boulders.setMatrixAt(i, dummy.matrix)
+    })
+    scene.add(boulders)
 
     // ── Dog — morning character ────────────────────────────────────────────
     // All character materials start opacity:0 and are faded in by time of day
@@ -422,14 +434,18 @@ export default function ThreeSceneDemo() {
     tentMesh.castShadow = true; tentMesh.receiveShadow = true
     scene.add(tentMesh)
 
-    // Rock ring around fire pit
+    // Rock ring around fire pit — instanced, same reasoning as the boulders above.
     const rockRingMat = mkCampMat(0x5a5550, 0.95)
+    const rockRing = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.13, 0), rockRingMat, 7)
     for (let i = 0; i < 7; i++) {
       const ang = (i / 7) * Math.PI * 2
-      const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.13, 0), rockRingMat)
-      rk.position.set(5.0 + Math.cos(ang) * 0.40, -0.90, -1.0 + Math.sin(ang) * 0.40)
-      rk.rotation.set(i * 0.8, i * 1.3, i * 0.5); scene.add(rk)
+      dummy.position.set(5.0 + Math.cos(ang) * 0.40, -0.90, -1.0 + Math.sin(ang) * 0.40)
+      dummy.rotation.set(i * 0.8, i * 1.3, i * 0.5)
+      dummy.scale.set(1, 1, 1)
+      dummy.updateMatrix()
+      rockRing.setMatrixAt(i, dummy.matrix)
     }
+    scene.add(rockRing)
 
     // Crossed logs
     const logMat = mkCampMat(0x3a1e08, 0.95)
@@ -462,8 +478,9 @@ export default function ThreeSceneDemo() {
     scene.add(fireLight)
 
     // ── Stars ──────────────────────────────────────────────────────────────
-    const sv = new Float32Array(1200 * 3)
-    for (let i = 0; i < 1200; i++) {
+    const starCount = isTouchDevice ? 600 : 1200
+    const sv = new Float32Array(starCount * 3)
+    for (let i = 0; i < starCount; i++) {
       const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1)
       const r  = 400 + Math.random() * 40
       sv[i*3]   = r * Math.sin(ph) * Math.cos(th)
@@ -494,23 +511,31 @@ export default function ThreeSceneDemo() {
     // ── Post-processing ────────────────────────────────────────────────────
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
-    // Bloom's internal blur mip chain scales with this resolution — halve it on
-    // touch devices, where it's otherwise one of the costliest passes per frame.
-    const bloomScale = isTouchDevice ? 0.5 : 1
-    const bloom = new UnrealBloomPass(
-      new THREE.Vector2(mount.clientWidth * bloomScale, mount.clientHeight * bloomScale), 0.28, 0.40, 0.88,
+    // Bloom's blur mip chain is the single most GPU-bandwidth-heavy thing in this
+    // scene (a chain of full-screen render-to-texture passes) — mobile GPUs have
+    // far less memory bandwidth than desktop, so drop it entirely on touch rather
+    // than just downscaling it.
+    const bloom = isTouchDevice ? null : new UnrealBloomPass(
+      new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.28, 0.40, 0.88,
     )
-    composer.addPass(bloom)
+    if (bloom) composer.addPass(bloom)
     composer.addPass(new OutputPass())
 
     // ── Resize ─────────────────────────────────────────────────────────────
-    const ro = new ResizeObserver(() => {
+    // composer.setSize() recreates every pass's render targets (bloom's mip
+    // chain included) — the costliest resize op of any demo in this codebase.
+    // Debounce so a burst of layout-settling ResizeObserver firings collapses
+    // into a single rebuild instead of several back-to-back ones.
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null
+    const doResize = () => {
       const { clientWidth: w, clientHeight: h } = mount
       renderer.setSize(w, h); composer.setSize(w, h)
-      // composer.setSize() resets every pass — including bloom — to full
-      // resolution, so re-apply the touch-device downscale after it runs.
-      bloom.setSize(w * bloomScale, h * bloomScale)
+      if (bloom) bloom.setSize(w, h)
       camera.aspect = w / h; camera.updateProjectionMatrix()
+    }
+    const ro = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(doResize, 120)
     })
     ro.observe(mount)
 
@@ -522,22 +547,27 @@ export default function ThreeSceneDemo() {
     const hemiDay   = new THREE.Color(0xb8d8f0)
     const hemiNight = new THREE.Color(0x6080b0)
     let dogOp = 0, cattleOp = 0, kidsOp = 0, campOp = 0
-    let animId: number, prevGreeting = '', lastTs = -1
+    let animId: number, prevGreeting = '', prevTs = 0
 
     function animate(ts: number) {
       animId = requestAnimationFrame(animate)
-      lastTs = lastTs < 0 ? ts : lastTs
-      lastTs = ts
+      // Normalize to 60Hz-frame-equivalents so the preset-transition countdown,
+      // opacity fades, and flame spin play at the same real-world speed on
+      // 90/120Hz phones as on 60Hz — everything else below derives its motion
+      // from Date.now() directly, which is already refresh-rate independent.
+      const dt = prevTs ? Math.min(ts - prevTs, 50) : 1000 / 60
+      prevTs  = ts
+      const k = dt / (1000 / 60)
 
       // Preset transition — ease-out cubic over 45 frames
       const tr = transitionRef.current
       if (tr && tr.frames > 0) {
-        tr.frames--
-        const p = 1 - Math.pow(tr.frames / 45, 3)
+        tr.frames -= k
+        const p = 1 - Math.pow(Math.max(tr.frames, 0) / 45, 3)
         let delta = tr.to - tr.from
         if (Math.abs(delta) > 12) delta -= Math.sign(delta) * 24
         overrideRef.current = (tr.from + delta * p + 24) % 24
-        if (tr.frames === 0) { overrideRef.current = tr.to; transitionRef.current = null }
+        if (tr.frames <= 0) { overrideRef.current = tr.to; transitionRef.current = null }
       }
       const h   = overrideRef.current ?? (new Date().getHours() + new Date().getMinutes() / 60)
       const cfg = getTimeConfig(h)
@@ -593,16 +623,16 @@ export default function ThreeSceneDemo() {
       moonLight.intensity = cfg.moonI
       moonLight.position.set(-sunVec.x, Math.max(0.2, Math.abs(sunVec.y)), -sunVec.z).multiplyScalar(60)
 
-      bloom.strength = cfg.bloomStr
+      if (bloom) bloom.strength = cfg.bloomStr
 
       // Stars
-      starMat.opacity += ((cfg.showStars ? 0.9 : 0) - starMat.opacity) * 0.02
+      starMat.opacity += ((cfg.showStars ? 0.9 : 0) - starMat.opacity) * 0.02 * k
 
       // ── Character animation ──────────────────────────────────────────────
       const ct = Date.now() / 1000
 
       // Dog — morning (h 7..11.5)
-      dogOp += (charOpacity(h, 7, 11.5) - dogOp) * 0.025
+      dogOp += (charOpacity(h, 7, 11.5) - dogOp) * 0.025 * k
       dogGroup.visible = dogOp > 0.01
       if (dogGroup.visible) {
         dogMats.forEach(m => { m.opacity = dogOp })
@@ -615,7 +645,7 @@ export default function ThreeSceneDemo() {
       }
 
       // Cattle — afternoon (h 12..16.5)
-      cattleOp += (charOpacity(h, 11.0, 17.0) - cattleOp) * 0.025
+      cattleOp += (charOpacity(h, 11.0, 17.0) - cattleOp) * 0.025 * k
       cowGroups.forEach(cg => { cg.visible = cattleOp > 0.01 })
       if (cattleOp > 0.01) {
         cowMats.forEach(m => { m.opacity = cattleOp })
@@ -626,7 +656,7 @@ export default function ThreeSceneDemo() {
       }
 
       // Kids — dusk (h 17.5..19.5)
-      kidsOp += (charOpacity(h, 17.5, 19.5) - kidsOp) * 0.025
+      kidsOp += (charOpacity(h, 17.5, 19.5) - kidsOp) * 0.025 * k
       kidGroups.forEach(kg => { kg.visible = kidsOp > 0.01 })
       if (kidsOp > 0.01) {
         kidMats.forEach(m => { m.opacity = kidsOp })
@@ -643,13 +673,13 @@ export default function ThreeSceneDemo() {
       // Night camp — visible h > 20.5 or h < 4.8
       const campTarget = h > 20.5 ? Math.min((h - 20.5) / 0.8, 1)
                        : h < 4.8  ? Math.min((4.8 - h) / 0.8, 1) : 0
-      campOp += (campTarget - campOp) * 0.025
+      campOp += (campTarget - campOp) * 0.025 * k
       campMats.forEach(m => { m.opacity = campOp })
       flameGroup.visible = campOp > 0.01
       if (campOp > 0.01) {
         const fs = 0.88 + Math.sin(ct * 7.8) * 0.10 + Math.sin(ct * 13.3) * 0.06
         flameGroup.scale.set(fs, fs * (1 + Math.sin(ct * 11.3) * 0.08), fs)
-        flameGroup.rotation.y += 0.02
+        flameGroup.rotation.y += 0.02 * k
         fireLight.intensity = campOp * (4.0 + Math.sin(ct * 9.1) * 0.6 + Math.sin(ct * 15.7) * 0.4)
       } else { fireLight.intensity = 0 }
 
@@ -665,6 +695,7 @@ export default function ThreeSceneDemo() {
     return () => {
       cancelAnimationFrame(animId)
       ro.disconnect()
+      if (resizeTimer) clearTimeout(resizeTimer)
       grassTex.dispose(); rockTex.dispose(); flameTex.dispose()
       scene.traverse(obj => {
         const mesh = obj as THREE.Mesh
