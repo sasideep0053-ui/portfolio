@@ -662,8 +662,8 @@ export default function GaltonDemo() {
       ctx.scale(dpr, dpr)
     }
     resize()
-    // Mobile Chrome's 100svh recalculates a few times right after mount as the
-    // URL-bar chrome collapses — each layout tick fires this observer, and each
+    // Layout can still settle over a couple of ticks right after mount (font
+    // load, scrollbar changes, etc.) — each tick fires this observer, and each
     // resize() does a full bitmap reset (canvas.width/height + ctx.scale), which
     // is expensive at DPR 2. Debounce so that settling burst collapses into one
     // resize instead of several back-to-back resets fighting the RAF draw loop.
@@ -855,7 +855,7 @@ z_score(bin) = (bin − mean) / std_dev
           <div style={{ flex: 1, minWidth: 0, maxWidth: 580, display: 'flex', flexDirection: 'column' }}>
             <canvas
               ref={canvasRef}
-              style={{ width: '100%', flex: '1 1 0', height: 'calc(100svh - 17rem)', display: 'block', borderRadius: '0.5rem',
+              style={{ width: '100%', flex: '1 1 0', height: 'calc(100lvh - 17rem)', display: 'block', borderRadius: '0.5rem',
                 border: '1px solid var(--border)', background: 'var(--bg)' }}
               aria-label="Galton board simulation"
               role="img"
@@ -863,7 +863,7 @@ z_score(bin) = (bin − mean) / std_dev
           </div>
 
           {/* ── Right sidebar ────────────────────────────────────── */}
-          <div className="demo-two-col__sidebar" style={{ maxHeight: 'calc(100svh - 17rem)', overflowY: 'hidden' }}>
+          <div className="demo-two-col__sidebar" style={{ maxHeight: 'calc(100lvh - 17rem)', overflowY: 'hidden' }}>
 
             {/* ── Action buttons — top ──────────────────────────────── */}
             <div className="demo-action-bar" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flexShrink: 0 }}>
