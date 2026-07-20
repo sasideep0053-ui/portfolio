@@ -662,7 +662,16 @@ export default function GaltonDemo() {
       ctx.scale(dpr, dpr)
     }
     resize()
-    const ro = new ResizeObserver(resize)
+    // Mobile Chrome's 100svh recalculates a few times right after mount as the
+    // URL-bar chrome collapses — each layout tick fires this observer, and each
+    // resize() does a full bitmap reset (canvas.width/height + ctx.scale), which
+    // is expensive at DPR 2. Debounce so that settling burst collapses into one
+    // resize instead of several back-to-back resets fighting the RAF draw loop.
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null
+    const ro = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(resize, 120)
+    })
     ro.observe(canvas)
 
     let prevRafTs = 0
@@ -719,7 +728,11 @@ export default function GaltonDemo() {
       rafRef.current = requestAnimationFrame(draw)
     }
     rafRef.current = requestAnimationFrame(draw)
-    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect() }
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      ro.disconnect()
+      if (resizeTimer) clearTimeout(resizeTimer)
+    }
   }, [landBead])
 
   const startDropping = useCallback(() => {

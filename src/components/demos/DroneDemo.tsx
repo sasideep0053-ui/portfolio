@@ -748,16 +748,28 @@ export default function DroneDemo() {
     // Clamp DPR — retina phones (3x) would otherwise triple the pixel-shading
     // cost of both canvases for no visible quality gain at this size.
     const dpr = Math.min(devicePixelRatio, 2)
+    let lastW = -1, lastH = -1, lastCW = -1, lastCH = -1
     const resize = () => {
-      canvas.width  = canvas.offsetWidth  * dpr
-      canvas.height = canvas.offsetHeight * dpr
-      chart.width   = chart.offsetWidth   * dpr
-      chart.height  = chart.offsetHeight  * dpr
+      const w = canvas.offsetWidth, h = canvas.offsetHeight
+      const cw = chart.offsetWidth, ch = chart.offsetHeight
+      if (w === lastW && h === lastH && cw === lastCW && ch === lastCH) return
+      lastW = w; lastH = h; lastCW = cw; lastCH = ch
+      canvas.width  = w * dpr
+      canvas.height = h * dpr
+      chart.width   = cw * dpr
+      chart.height  = ch * dpr
       ctx.scale(dpr, dpr)
       cctx.scale(dpr, dpr)
     }
     resize()
-    const ro = new ResizeObserver(resize)
+    // Layout reflows (sidebar height settling, font load, orientation change)
+    // can fire ResizeObserver several times in quick succession — debounce so
+    // that burst collapses into a single bitmap reset instead of several.
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null
+    const ro = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(resize, 120)
+    })
     ro.observe(canvas); ro.observe(chart)
 
     const draw = () => {
@@ -773,7 +785,11 @@ export default function DroneDemo() {
       rafRef.current = requestAnimationFrame(draw)
     }
     rafRef.current = requestAnimationFrame(draw)
-    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect() }
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      ro.disconnect()
+      if (resizeTimer) clearTimeout(resizeTimer)
+    }
   }, [])
 
   return (
