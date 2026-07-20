@@ -18,9 +18,9 @@ import StarField from './components/StarField'
 import ThemeBackground from './components/ThemeBackground'
 import ChatBubble from './components/ChatBubble'
 
-// Lazy-loaded: these pull in Three.js, AG Grid, AG Charts, and D3 — keeping
-// them out of the homepage bundle so a homepage visit doesn't pay for code
-// only /lab and /components visitors need.
+// Lazy-loaded: these pull in Three.js and D3 — keeping them out of the
+// homepage bundle so a homepage visit doesn't pay for code only /lab and
+// /components visitors need.
 const LabPage        = lazy(() => import('./components/LabPage'))
 const ComponentsPage = lazy(() => import('./components/ComponentsPage'))
 
