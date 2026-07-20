@@ -26,6 +26,13 @@ interface Message {
   steps?:     PipelineStep[]
 }
 
+// Pipeline stages can complete in a handful of ms on a fast backend — pace
+// their on-screen reveal so readers actually have time to register each one.
+const MIN_STEP_VISIBLE_MS = 550
+type StepQueueItem =
+  | { type: 'step'; phase: string; msg: string; detail: string; now: number }
+  | { type: 'done'; now: number; sources: string[]; conf: number | null }
+
 const INITIAL_STEPS = (): PipelineStep[] => [
   { phase: 'embed',    label: 'Embed',         msg: '', detail: '', state: 'idle' },
   { phase: 'vector',   label: 'Vector Search', msg: '', detail: '', state: 'idle' },
@@ -522,6 +529,8 @@ export default function RagDemo() {
   const bottomRef       = useRef<HTMLDivElement>(null)
   const inputRef        = useRef<HTMLInputElement>(null)
   const stepsSnapshotRef = useRef<PipelineStep[]>([])
+  const stepQueueRef    = useRef<StepQueueItem[]>([])
+  const stepPumpRef     = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const startTypewriter = useCallback(() => {
     if (typewriterRef.current) return
@@ -547,6 +556,8 @@ export default function RagDemo() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [messages])
 
+  useEffect(() => () => { if (stepPumpRef.current) clearInterval(stepPumpRef.current) }, [])
+
   // Reset conversation when doc source changes
   const switchSource = (src: DocSource) => {
     if (busy) return
@@ -556,8 +567,7 @@ export default function RagDemo() {
     inputRef.current?.focus()
   }
 
-  const updateStep = useCallback((phase: string, msg: string, detail: string) => {
-    const now = performance.now()
+  const updateStep = useCallback((phase: string, msg: string, detail: string, now: number) => {
     setSteps(prev => {
       const order    = prev.map(s => s.phase)
       const incoming = order.indexOf(phase)
@@ -575,6 +585,58 @@ export default function RagDemo() {
     })
   }, [])
 
+  // Applies one queued pipeline event to visible state. `now` is always the
+  // real timestamp captured when the SSE event arrived, so reported step
+  // durations stay accurate even though the on-screen reveal is paced below.
+  const processQueueItem = useCallback((item: StepQueueItem) => {
+    if (item.type === 'step') {
+      updateStep(item.phase, item.msg, item.detail, item.now)
+      setSteps(prev => { stepsSnapshotRef.current = prev; return prev })
+      return
+    }
+    setSteps(prev => {
+      const final = prev.map(s => s.state === 'active'
+        ? { ...s, state: 'done' as StepState, duration: s.startedAt ? item.now - s.startedAt : undefined }
+        : s)
+      stepsSnapshotRef.current = final
+      return final
+    })
+    setMessages(prev => {
+      const copy = [...prev]
+      const last = copy[copy.length - 1]
+      if (last?.role === 'assistant') {
+        copy[copy.length - 1] = {
+          ...last,
+          streaming:  false,
+          sources:    item.sources,
+          confidence: item.conf,
+          steps:      stepsSnapshotRef.current,
+        }
+      }
+      return copy
+    })
+    setBusy(false)
+    inputRef.current?.focus()
+  }, [updateStep])
+
+  // Feeds pipeline events through at a minimum visible pace instead of
+  // slamming them onto screen as fast as the backend reports them.
+  const enqueueStepEvent = useCallback((item: StepQueueItem) => {
+    stepQueueRef.current.push(item)
+    if (stepPumpRef.current) return
+    const first = stepQueueRef.current.shift()!
+    processQueueItem(first)
+    stepPumpRef.current = setInterval(() => {
+      const next = stepQueueRef.current.shift()
+      if (!next) {
+        clearInterval(stepPumpRef.current!)
+        stepPumpRef.current = null
+        return
+      }
+      processQueueItem(next)
+    }, MIN_STEP_VISIBLE_MS)
+  }, [processQueueItem])
+
   const ask = useCallback(async (q: string) => {
     if (!q.trim() || busy) return
     const question = q.trim()
@@ -585,6 +647,8 @@ export default function RagDemo() {
     setSteps(freshSteps)
     stepsSnapshotRef.current = freshSteps
     stopTypewriter()
+    if (stepPumpRef.current) { clearInterval(stepPumpRef.current); stepPumpRef.current = null }
+    stepQueueRef.current = []
     devLog('RAG', `query → "${question.slice(0, 48)}"`)
 
     setMessages(prev => [
@@ -621,38 +685,14 @@ export default function RagDemo() {
           const payload = line.slice(6)
 
           if (payload === '[DONE]') {
-            setSteps(prev => {
-              const doneAt = performance.now()
-              const final = prev.map(s => s.state === 'active'
-                ? { ...s, state: 'done' as StepState, duration: s.startedAt ? doneAt - s.startedAt : undefined }
-                : s)
-              stepsSnapshotRef.current = final
-              return final
-            })
-            setMessages(prev => {
-              const copy = [...prev]
-              const last = copy[copy.length - 1]
-              if (last?.role === 'assistant') {
-                copy[copy.length - 1] = {
-                  ...last,
-                  streaming:  false,
-                  sources:    finalSources,
-                  confidence: finalConf,
-                  steps:      stepsSnapshotRef.current,
-                }
-              }
-              return copy
-            })
-            setBusy(false)
-            inputRef.current?.focus()
+            enqueueStepEvent({ type: 'done', now: performance.now(), sources: finalSources, conf: finalConf })
             continue
           }
 
           if (payload.startsWith('[STEP]')) {
             try {
               const ev = JSON.parse(payload.slice(6)) as { phase: string; msg: string; detail: string }
-              updateStep(ev.phase, ev.msg, ev.detail)
-              setSteps(prev => { stepsSnapshotRef.current = prev; return prev })
+              enqueueStepEvent({ type: 'step', phase: ev.phase, msg: ev.msg, detail: ev.detail, now: performance.now() })
             } catch { /* ignore */ }
             continue
           }
@@ -684,8 +724,10 @@ export default function RagDemo() {
       })
       setBusy(false)
       stopTypewriter()
+      if (stepPumpRef.current) { clearInterval(stepPumpRef.current); stepPumpRef.current = null }
+      stepQueueRef.current = []
     }
-  }, [busy, docSource, startTypewriter, stopTypewriter, updateStep])
+  }, [busy, docSource, startTypewriter, stopTypewriter, enqueueStepEvent])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
