@@ -208,7 +208,7 @@ function ReportCard({ report, accent, onReset }: { report: Report; accent: strin
     <div style={{ animation: 'fadeInUp 0.4s ease both' }}>
 
       {/* ── Top row: donut left, stats grid right ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, marginBottom: 14 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 28, marginBottom: 14 }}>
 
         {/* Donut + risk label */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>

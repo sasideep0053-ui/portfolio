@@ -984,7 +984,7 @@ z_score(bin) = (bin − mean) / std_dev
                   <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(248,113,113,0.15)' }}>
                     <div style={{ fontSize: '0.5rem', fontFamily: 'monospace', color: '#f87171',
                       letterSpacing: '0.1em', marginBottom: '0.375rem' }}>ANOMALIES |z|≥2.5σ</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', maxHeight: '3.75rem', overflowY: 'auto' }}>
                       {anomalies.map(({ bin, z }) => (
                         <span key={bin} style={{
                           fontSize: '0.5625rem', fontFamily: 'monospace', padding: '0.125rem 0.375rem',

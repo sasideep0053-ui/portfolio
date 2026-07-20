@@ -1895,7 +1895,10 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   .rag-pipeline { flex: 0 0 auto !important; overflow-y: visible !important; }
   /* Day-Night Scene: move time-preset buttons to the top so they never
      collide with the bottom-left greeting/clock text on narrow screens */
-  .three-scene__times { top: 1rem !important; right: 1rem !important; bottom: auto !important; }
+  .three-scene__times {
+    top: 1rem !important; right: 1rem !important; left: 1rem !important; bottom: auto !important;
+    flex-wrap: wrap !important; justify-content: flex-end !important;
+  }
   /* Float action button to top so it's visible right after the canvas */
   .demo-action-bar { order: -1; }
   .lab-layout { flex-direction: column; height: auto; min-height: calc(100vh - var(--nav-h)); overflow-y: visible; overflow-x: hidden; }
