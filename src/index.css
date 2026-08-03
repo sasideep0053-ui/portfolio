@@ -105,6 +105,13 @@ body { background: inherit; }
 .theme-root[data-color="jjk"] .theme-bg__svg { opacity: 0.24; }
 .theme-root[data-color="demonslayer"] .theme-bg__svg { opacity: 0.42; }
 
+/* Touch-device fallback: pure CSS gradient, no filters/shapes/SMIL, so it
+   costs nothing to paint/composite on scroll. Swapped in instead of the
+   animated SVG scenes below on touch devices — see ThemeBackground.tsx. */
+.theme-bg--plain {
+  background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%);
+}
+
 /* ══════════════════════════════════════════════
    ANIME / SPORTS THEME — font + aesthetic overrides
    ══════════════════════════════════════════════ */

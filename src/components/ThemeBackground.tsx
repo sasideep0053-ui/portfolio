@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTheme } from '../contexts/ThemeContext'
 
 /* ─── Attack on Titan: Survey Corps ──────────────────── */
@@ -1561,18 +1561,34 @@ export default function ThemeBackground() {
   const { colorTheme } = useTheme()
   const Bg = BACKGROUNDS[colorTheme]
 
+  // Touch devices render a plain CSS gradient instead of the full SVG scene,
+  // not just pause its animations once mounted — the feGaussianBlur filters
+  // and shape count still cost a paint/composite on every scroll frame even
+  // with SMIL paused, which is the actual source of mobile scroll jank, not
+  // the animation itself. Desktop is untouched.
+  const [isTouchDevice, setIsTouchDevice] = useState(
+    () => window.matchMedia('(hover: none) and (pointer: coarse)').matches,
+  )
+
   useEffect(() => {
-    const mq  = window.matchMedia('(prefers-reduced-motion: reduce)')
-    // Touch devices: these backgrounds lean on blurred SVG filters (feGaussianBlur),
-    // which mobile browsers rasterize in software rather than on the GPU — pause
-    // the SMIL animations there the same way reduced-motion does.
-    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-    const svg = document.querySelector<SVGSVGElement>('.theme-bg__svg')
-    const apply = () => (mq.matches || isTouchDevice) ? svg?.pauseAnimations() : svg?.unpauseAnimations()
+    const mq = window.matchMedia('(hover: none) and (pointer: coarse)')
+    const apply = () => setIsTouchDevice(mq.matches)
     apply()
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
-  }, [colorTheme])
+  }, [])
 
-  return Bg ? <Bg /> : null
+  useEffect(() => {
+    if (isTouchDevice) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const svg = document.querySelector<SVGSVGElement>('.theme-bg__svg')
+    const apply = () => (mq.matches ? svg?.pauseAnimations() : svg?.unpauseAnimations())
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [colorTheme, isTouchDevice])
+
+  if (!Bg) return null
+  if (isTouchDevice) return <div className="theme-bg theme-bg--plain" aria-hidden="true" />
+  return <Bg />
 }
