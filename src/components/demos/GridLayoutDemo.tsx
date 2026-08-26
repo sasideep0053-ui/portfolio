@@ -245,6 +245,7 @@ export default function GridLayoutDemo() {
   const [focusedId,    setFocusedId]    = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const isDraggingRef = useRef(false)
 
   const breakpoint = getBreakpoint(width)
   const cols       = getColsForBreakpoint(breakpoint)
@@ -295,6 +296,10 @@ export default function GridLayoutDemo() {
     const el = containerRef.current
     if (!el) return
     const ro = new ResizeObserver(([e]) => {
+      // Remounting the grid (via gridKey) while a drag is in-flight tears down
+      // react-grid-layout's internal drag state mid-gesture, so its onDragStop
+      // fires with a null event object — skip the reset until the drag ends.
+      if (isDraggingRef.current) return
       const w = e.contentRect.width
       setWidth(w)
       // Switch layout when crossing breakpoints
@@ -349,14 +354,16 @@ export default function GridLayoutDemo() {
         margin={[10, 10]}
         containerPadding={[0, 0]}
         onLayoutChange={l => setLayout([...l])}
-        onDragStart={() => setIsDragging(true)}
-        onDragStop={(i, _w, _h, data) => {
+        onDragStart={() => { setIsDragging(true); isDraggingRef.current = true }}
+        onDragStop={(_layout, _oldItem, newItem) => {
           setIsDragging(false)
-          const pos = (data as { newPosition?: { left: number; top: number } }).newPosition
-          devLog('SYSTEM', `user dragged widget → "${i}"${pos ? ` to (${Math.round(pos.left)}, ${Math.round(pos.top)})` : ''}`)
+          isDraggingRef.current = false
+          if (!newItem) return
+          devLog('SYSTEM', `user dragged widget → "${newItem.i}" to (${newItem.x}, ${newItem.y})`)
         }}
-        onResizeStop={(i, w, h) => {
-          devLog('SYSTEM', `user resized widget → "${i}" to ${w}×${h}`)
+        onResizeStop={(_layout, _oldItem, newItem) => {
+          if (!newItem) return
+          devLog('SYSTEM', `user resized widget → "${newItem.i}" to ${newItem.w}×${newItem.h}`)
         }}
         draggableHandle=".rgl-widget__header"
         resizeHandles={['se']}
