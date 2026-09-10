@@ -22,14 +22,15 @@ export default function Navbar() {
   const { consoleOpen, setConsoleOpen } = useConsole()
   const isLab = path.startsWith('/lab') || path.startsWith('/components')
 
-  const [scrolled,     setScrolled]    = useState(false)
   const [paletteOpen,  setPaletteOpen] = useState(false)
-  const [progress,     setProgress]    = useState(0)
   const [toastLines,   setToastLines]  = useState<string[]>([])
   const [toastVisible, setToastVisible] = useState(false)
   const [controlsSeen, setControlsSeen] = useState(
     () => localStorage.getItem('controlsSeen') === '1'
   )
+  const navElRef       = useRef<HTMLElement>(null)
+  const progressElRef  = useRef<HTMLDivElement>(null)
+  const isLabRef        = useRef(isLab)
   const toastTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lineTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -52,6 +53,15 @@ export default function Navbar() {
     prevConsoleOpen.current = consoleOpen
   }, [consoleOpen])
 
+  // isLab changes are route-driven (infrequent) so stay reactive via this
+  // effect; scroll position is high-frequency, so it's handled entirely via
+  // direct DOM writes below instead of React state — no re-render needed for
+  // a single className toggle and a single style.width write.
+  useEffect(() => {
+    isLabRef.current = isLab
+    navElRef.current?.classList.toggle('navbar--scrolled', isLab || window.scrollY > 40)
+  }, [isLab])
+
   useEffect(() => {
     let ticking = false
     const onScroll = () => {
@@ -59,9 +69,11 @@ export default function Navbar() {
       ticking = true
       requestAnimationFrame(() => {
         const y = window.scrollY
-        setScrolled(y > 40)
+        navElRef.current?.classList.toggle('navbar--scrolled', y > 40 || isLabRef.current)
         const total = document.documentElement.scrollHeight - window.innerHeight
-        setProgress(total > 0 ? (y / total) * 100 : 0)
+        if (progressElRef.current) {
+          progressElRef.current.style.width = `${total > 0 ? (y / total) * 100 : 0}%`
+        }
         ticking = false
       })
     }
@@ -88,8 +100,8 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`navbar${(scrolled || isLab) ? ' navbar--scrolled' : ''}`} role="navigation" aria-label="Main navigation">
-      <div className="scroll-progress" style={{ width: `${progress}%` }} aria-hidden="true" />
+      <nav ref={navElRef} className={`navbar${isLab ? ' navbar--scrolled' : ''}`} role="navigation" aria-label="Main navigation">
+      <div ref={progressElRef} className="scroll-progress" style={{ width: 0 }} aria-hidden="true" />
       <div className="container navbar__inner">
 
         <button
