@@ -53,11 +53,17 @@ export default function Navbar() {
   }, [consoleOpen])
 
   useEffect(() => {
+    let ticking = false
     const onScroll = () => {
-      const y = window.scrollY
-      setScrolled(y > 40)
-      const total = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(total > 0 ? (y / total) * 100 : 0)
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const y = window.scrollY
+        setScrolled(y > 40)
+        const total = document.documentElement.scrollHeight - window.innerHeight
+        setProgress(total > 0 ? (y / total) * 100 : 0)
+        ticking = false
+      })
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
