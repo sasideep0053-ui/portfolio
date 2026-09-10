@@ -496,7 +496,7 @@ const HOW_IT_WORKS = `// ── WHY hybrid chunking? ─────────
 
 
 // ── Groq LLM generation (streamed via SSE) ──────────────────────────────────
-// model: llama-3.1-8b-instant  (reuses portfolio GROQ_API_KEY)
+// model: groq/compound-mini, falls back to openai/gpt-oss-20b  (reuses portfolio GROQ_API_KEY)
 // Tokens stream char-by-char as JSON-encoded SSE events so newlines
 // don't break the SSE delimiter — the UI typewriter stays in sync.`
 
@@ -788,7 +788,7 @@ export default function RagDemo() {
           </p>
           <pre className="code-block">{HOW_IT_WORKS}</pre>
           <p className="demo-stack-note">
-            Stack: ChromaDB · Voyage AI (voyage-4-lite embeddings, rerank-2.5-lite) · BM25Okapi · Groq llama-3.1-8b-instant · FastAPI SSE · React
+            Stack: ChromaDB · Voyage AI (voyage-4-lite embeddings, rerank-2.5-lite) · BM25Okapi · Groq (compound-mini + fallback) · FastAPI SSE · React
           </p>
         </div>
       ) : (

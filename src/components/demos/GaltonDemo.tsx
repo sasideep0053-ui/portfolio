@@ -733,7 +733,10 @@ export default function GaltonDemo() {
       ro.disconnect()
       if (resizeTimer) clearTimeout(resizeTimer)
     }
-  }, [landBead])
+    // Re-run whenever the canvas is (re)mounted — the "How it works" tab
+    // unmounts this <canvas> node entirely, so a fresh setup is needed each
+    // time the Demo tab remounts a new one, not just on first mount.
+  }, [landBead, showHow])
 
   const startDropping = useCallback(() => {
     droppingRef.current = true

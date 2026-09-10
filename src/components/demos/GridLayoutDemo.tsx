@@ -246,6 +246,7 @@ export default function GridLayoutDemo() {
   const [announcement, setAnnouncement] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const isDraggingRef = useRef(false)
+  const lastBreakpointRef = useRef<string | null>(null)
 
   const breakpoint = getBreakpoint(width)
   const cols       = getColsForBreakpoint(breakpoint)
@@ -302,14 +303,22 @@ export default function GridLayoutDemo() {
       if (isDraggingRef.current) return
       const w = e.contentRect.width
       setWidth(w)
-      // Switch layout when crossing breakpoints
-      setLayout(getDefaultLayout(getBreakpoint(w)))
-      setGridKey(k => k + 1)
+      // Only reset the layout when we actually cross a breakpoint — resetting
+      // on every resize event (window resize, sidebar animating, a sub-pixel
+      // reflow) was silently wiping out any user-made drag/resize changes.
+      const newBreakpoint = getBreakpoint(w)
+      if (newBreakpoint !== lastBreakpointRef.current) {
+        lastBreakpointRef.current = newBreakpoint
+        setLayout(getDefaultLayout(newBreakpoint))
+        setGridKey(k => k + 1)
+      }
     })
     ro.observe(el)
     const initW = el.offsetWidth
     setWidth(initW)
-    setLayout(getDefaultLayout(getBreakpoint(initW)))
+    const initBreakpoint = getBreakpoint(initW)
+    lastBreakpointRef.current = initBreakpoint
+    setLayout(getDefaultLayout(initBreakpoint))
     return () => ro.disconnect()
   }, [])
 
@@ -353,15 +362,27 @@ export default function GridLayoutDemo() {
         compactType={null}
         margin={[10, 10]}
         containerPadding={[0, 0]}
-        onLayoutChange={l => setLayout([...l])}
+        onLayoutChange={l => {
+          // While a drag/resize is in flight, react-grid-layout fires this
+          // continuously as it computes collision-avoidance positions for
+          // other items — committing every intermediate frame to React state
+          // fights with the library's own drag-transform DOM updates and is
+          // what caused widgets to visually overlap instead of moving out of
+          // the way smoothly. Only commit once the gesture actually ends
+          // (see onDragStop/onResizeStop below).
+          if (isDraggingRef.current) return
+          setLayout([...l])
+        }}
         onDragStart={() => { setIsDragging(true); isDraggingRef.current = true }}
-        onDragStop={(_layout, _oldItem, newItem) => {
+        onDragStop={(layout, _oldItem, newItem) => {
           setIsDragging(false)
           isDraggingRef.current = false
+          setLayout([...layout])
           if (!newItem) return
           devLog('SYSTEM', `user dragged widget → "${newItem.i}" to (${newItem.x}, ${newItem.y})`)
         }}
-        onResizeStop={(_layout, _oldItem, newItem) => {
+        onResizeStop={(layout, _oldItem, newItem) => {
+          setLayout([...layout])
           if (!newItem) return
           devLog('SYSTEM', `user resized widget → "${newItem.i}" to ${newItem.w}×${newItem.h}`)
         }}

@@ -790,7 +790,10 @@ export default function DroneDemo() {
       ro.disconnect()
       if (resizeTimer) clearTimeout(resizeTimer)
     }
-  }, [])
+    // Re-run whenever the canvas is (re)mounted — the "How it works" tab
+    // unmounts these <canvas> nodes entirely, so a fresh setup is needed
+    // each time the Demo tab remounts new ones, not just on first mount.
+  }, [showHow])
 
   return (
     <div style={{ fontFamily: 'var(--font)', maxWidth: 860 }}>

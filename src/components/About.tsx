@@ -54,7 +54,7 @@ export default function About() {
                 'Hardware-adjacent UI: physics simulation, control-loop visualization (PID, G-force telemetry), sensor-driven dashboards.',
                 'Full ownership — UX research, prototyping, architecture, and production.',
                 'Accessibility as a hard constraint: WCAG AA, keyboard nav, screen reader tested.',
-                'Outside of work: independently built and shipped FictaNode, an interactive fiction reading platform with puzzle-gated chapter progression, archetype badges, accounts, and payments, as a hobby.',
+                'Outside of work, I build and maintain FictaNode, a small group of side projects: TurfNode, ArcadeNode, WitnessNode, DearNode, and a couple others. Each one does its own thing rather than copying something bigger already out there. They\'ve got real accounts and payments behind them too, not just prototypes. I just like building stuff.',
               ].map(text => (
                 <li key={text} className="about__list-item">
                   <span className="about__list-dot" aria-hidden="true" />
