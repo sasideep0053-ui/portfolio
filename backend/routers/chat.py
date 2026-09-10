@@ -127,12 +127,21 @@ async def chat_stream(req: ChatRequest, request: Request):
 
     async def generate():
         try:
-            stream = await client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=messages,
-                max_tokens=512,
-                stream=True,
-            )
+            try:
+                stream = await client.chat.completions.create(
+                    model="groq/compound-mini",
+                    messages=messages,
+                    max_tokens=512,
+                    stream=True,
+                )
+            except Exception:
+                # primary model unavailable (e.g. deprecated/retired) — retry once with the fallback
+                stream = await client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=messages,
+                    max_tokens=512,
+                    stream=True,
+                )
             async for chunk in stream:
                 token = chunk.choices[0].delta.content or ""
                 if token:

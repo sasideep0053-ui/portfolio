@@ -91,7 +91,7 @@ function demoFromPath(path: string): DemoId {
     const qid = params.get('demo') as DemoId
     if (qid && ALL_IDS.includes(qid)) return qid
   }
-  return 'drive-score'
+  return ALL_IDS[0]
 }
 
 export default function LabPage() {

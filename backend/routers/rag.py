@@ -31,7 +31,8 @@ def _rate_ok(ip: str, limit: int = 20, window: int = 60) -> bool:
 DB_DIR           = os.path.join(os.path.dirname(__file__), '..', 'rag_db')
 COLLECTION_NAME  = 'rag_docs'
 EMBED_MODEL      = 'voyage-4-lite'
-GROQ_MODEL       = 'llama-3.1-8b-instant'
+GROQ_MODEL          = 'groq/compound-mini'
+GROQ_FALLBACK_MODEL = 'openai/gpt-oss-20b'
 RERANK_MODEL     = 'rerank-2.5-lite'
 
 RETRIEVE_K            = 20
@@ -363,12 +364,21 @@ async def _stream(question: str, doc_source: str) -> AsyncGenerator[str, None]:
 
     try:
         client = _get_groq_client(api_key)
-        stream = await client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{'role': 'user', 'content': prompt}],
-            max_tokens=600,
-            stream=True,
-        )
+        try:
+            stream = await client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=600,
+                stream=True,
+            )
+        except Exception:
+            # primary model unavailable (e.g. deprecated/retired) — retry once with the fallback
+            stream = await client.chat.completions.create(
+                model=GROQ_FALLBACK_MODEL,
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=600,
+                stream=True,
+            )
         async for chunk in stream:
             token = chunk.choices[0].delta.content or ''
             for ch in token:
