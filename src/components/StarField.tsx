@@ -254,7 +254,23 @@ export default function StarField() {
       if (reducedMotion || isTouchDevice) draw(0, false)
     })
     ro.observe(canvas)
-    return () => { cancelAnimationFrame(raf); ro.disconnect() }
+
+    // Pause the RAF loop entirely while the tab is backgrounded — no visible
+    // difference to the user, but stops burning CPU/GPU for an invisible tab.
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf)
+      } else if (!reducedMotion && !isTouchDevice) {
+        frame()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [accent, theme])
 
   return <canvas ref={canvasRef} className="star-field" aria-hidden="true" />

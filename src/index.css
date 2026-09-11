@@ -1817,6 +1817,11 @@ svg path:focus-visible, svg circle:focus-visible, svg rect:focus-visible {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .lab-main__demo { margin-top: 0; }
+.lab-demo-loading {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 20rem; color: var(--text-3); font-family: var(--font);
+  font-size: 0.8125rem; letter-spacing: 0.02em;
+}
 
 /* RAG demo: fill exact remaining height via flex instead of a viewport-calc
    guess — keeps sizing correct regardless of header/nav height changes. */

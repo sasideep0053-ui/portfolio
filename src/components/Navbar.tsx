@@ -56,11 +56,20 @@ export default function Navbar() {
   // isLab changes are route-driven (infrequent) so stay reactive via this
   // effect; scroll position is high-frequency, so it's handled entirely via
   // direct DOM writes below instead of React state — no re-render needed for
-  // a single className toggle and a single style.width write.
+  // a single className toggle and a single transform write.
   useEffect(() => {
     isLabRef.current = isLab
     navElRef.current?.classList.toggle('navbar--scrolled', isLab || window.scrollY > 40)
   }, [isLab])
+
+  // Navbar is actually rendered from three separate branches in App.tsx (one
+  // per route), so it unmounts/remounts on navigation — if a theme-toast
+  // sequence is still running when that happens, this stops it against the
+  // outgoing instance rather than leaking the interval/timeouts forever.
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    if (lineTimerRef.current)  clearInterval(lineTimerRef.current)
+  }, [])
 
   useEffect(() => {
     let ticking = false
@@ -72,7 +81,8 @@ export default function Navbar() {
         navElRef.current?.classList.toggle('navbar--scrolled', y > 40 || isLabRef.current)
         const total = document.documentElement.scrollHeight - window.innerHeight
         if (progressElRef.current) {
-          progressElRef.current.style.width = `${total > 0 ? (y / total) * 100 : 0}%`
+          const pct = total > 0 ? y / total : 0
+          progressElRef.current.style.transform = `scaleX(${pct})`
         }
         ticking = false
       })
@@ -101,7 +111,7 @@ export default function Navbar() {
   return (
     <>
       <nav ref={navElRef} className={`navbar${isLab ? ' navbar--scrolled' : ''}`} role="navigation" aria-label="Main navigation">
-      <div ref={progressElRef} className="scroll-progress" style={{ width: 0 }} aria-hidden="true" />
+      <div ref={progressElRef} className="scroll-progress" style={{ transform: 'scaleX(0)' }} aria-hidden="true" />
       <div className="container navbar__inner">
 
         <button

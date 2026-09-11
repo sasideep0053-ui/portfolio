@@ -513,7 +513,7 @@ const DEMO_BTN_BASE: React.CSSProperties = {
 }
 
 export default function GaltonDemo() {
-  const { colorTheme } = useTheme()
+  const { colorTheme, theme } = useTheme()
   const accent = COLOR_THEMES[colorTheme].accent
 
   const [showHow,     setShowHow]     = useState(false)
@@ -534,6 +534,8 @@ export default function GaltonDemo() {
   const fairCountsRef  = useRef<number[]>(new Array(ROWS_DEF + 1).fill(0))
   const biasCountsRef  = useRef<number[]>(new Array(ROWS_DEF + 1).fill(0))
   const accentRef      = useRef(accent)
+  const bgColorRef     = useRef('#03050d')
+  const surfaceColorRef = useRef('#070b14')
   const rowsRef        = useRef(ROWS_DEF)
   const speedRef       = useRef(1.0)
   const beadRateRef    = useRef(2)   // kept in sync with beadRate state
@@ -554,6 +556,15 @@ export default function GaltonDemo() {
   useEffect(() => { accentRef.current   = accent    }, [accent])
   useEffect(() => { speedRef.current    = speed     }, [speed])
   useEffect(() => { beadRateRef.current = beadRate  }, [beadRate])
+
+  // Theme colors only actually change when the theme (accent) changes — cache
+  // them here instead of re-querying the DOM every animation frame in draw().
+  useEffect(() => {
+    const root  = document.querySelector('.theme-root') as HTMLElement | null
+    const style = root ? getComputedStyle(root) : null
+    bgColorRef.current      = style?.getPropertyValue('--bg').trim()      || '#03050d'
+    surfaceColorRef.current = style?.getPropertyValue('--surface').trim() || '#070b14'
+  }, [accent, theme])
 
   useEffect(() => {
     const theo = mkTheo(rows, 0.5)
@@ -683,10 +694,8 @@ export default function GaltonDemo() {
       const H      = canvas.offsetHeight
       const dropMs = DROP_MS_BASE / remapSpeed(speedRef.current)
 
-      const root       = document.querySelector('.theme-root') as HTMLElement | null
-      const style      = root ? getComputedStyle(root) : null
-      const bgColor    = style?.getPropertyValue('--bg').trim()      || '#03050d'
-      const surfaceColor = style?.getPropertyValue('--surface').trim() || '#070b14'
+      const bgColor    = bgColorRef.current
+      const surfaceColor = surfaceColorRef.current
 
       const stillFlying: BeadPath[] = []
       for (const bead of beadsRef.current) {

@@ -556,7 +556,10 @@ export default function RagDemo() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [messages])
 
-  useEffect(() => () => { if (stepPumpRef.current) clearInterval(stepPumpRef.current) }, [])
+  useEffect(() => () => {
+    if (stepPumpRef.current) clearInterval(stepPumpRef.current)
+    if (typewriterRef.current) clearInterval(typewriterRef.current)
+  }, [])
 
   // Reset conversation when doc source changes
   const switchSource = (src: DocSource) => {

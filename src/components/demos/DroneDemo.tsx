@@ -534,7 +534,7 @@ const DEMO_BTN_BASE: React.CSSProperties = {
 }
 
 export default function DroneDemo() {
-  const { colorTheme } = useTheme()
+  const { colorTheme, theme } = useTheme()
   const accent = COLOR_THEMES[colorTheme].accent
 
   const [running,  setRunning]  = useState(false)
@@ -571,6 +571,7 @@ export default function DroneDemo() {
   const kiRef     = useRef(0.1)
   const kdRef     = useRef(1.5)
   const accentRef = useRef(accent)
+  const bgColorRef = useRef('#03050d')
   const runRef    = useRef(false)
 
   const pidLocal   = useRef(new LocalPID())
@@ -582,6 +583,13 @@ export default function DroneDemo() {
   const wsOnline = status === 'connected'
 
   useEffect(() => { accentRef.current = accent }, [accent])
+  // Theme color only actually changes when the theme (accent) changes — cache
+  // it here instead of re-querying the DOM every animation frame in draw().
+  useEffect(() => {
+    const root  = document.querySelector('.theme-root') as HTMLElement | null
+    const style = root ? getComputedStyle(root) : null
+    bgColorRef.current = style?.getPropertyValue('--bg').trim() || '#03050d'
+  }, [accent, theme])
   useEffect(() => { targetRef.current = targetH }, [targetH])
   useEffect(() => { kpRef.current = kp; kiRef.current = ki; kdRef.current = kd }, [kp, ki, kd])
 
@@ -775,9 +783,7 @@ export default function DroneDemo() {
     const draw = () => {
       const W = canvas.offsetWidth, H = canvas.offsetHeight
       const CW = chart.offsetWidth,  CH = chart.offsetHeight
-      const root    = document.querySelector('.theme-root') as HTMLElement | null
-      const style   = root ? getComputedStyle(root) : null
-      const bgColor = style?.getPropertyValue('--bg').trim() || '#03050d'
+      const bgColor = bgColorRef.current
       drawScene(ctx, W, H, accentRef.current,
         hRef.current, thrRef.current, errRef.current,
         targetRef.current, windRef.current, ncHRef.current, runRef.current, bgColor)

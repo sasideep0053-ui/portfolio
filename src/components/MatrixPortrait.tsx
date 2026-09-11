@@ -106,6 +106,7 @@ export default function MatrixPortrait({
     let img: HTMLImageElement|null = null
     let drawCoords = { sx:0, sy:0, sw:width, sh:height }
     let animId = 0, running = false, fadingOut = false
+    let paused = false
     let prevTs = 0
     let revealTriggered = false
     let stopTimer = 0, autoRevealTimer = 0
@@ -585,12 +586,13 @@ export default function MatrixPortrait({
         }
       }
 
-      animId = requestAnimationFrame(tick)
+      if (!paused) animId = requestAnimationFrame(tick)
     }
 
     // ── Controls ───────────────────────────────────────────────────────────
     startRainRef.current = () => {
       clearTimeout(stopTimer); clearTimeout(autoRevealTimer)
+      paused = false
       // Hovering while intro animation is in progress — skip to reveal immediately
       if (running && !autoRevealedRef.current) {
         revealTriggered = true; autoRevealedRef.current = true
@@ -670,7 +672,24 @@ export default function MatrixPortrait({
     }
 
     loadPhoto()
-    return () => { cancelAnimationFrame(animId); clearTimeout(stopTimer); clearTimeout(autoRevealTimer); running=false }
+    // Pause the RAF loop while the tab is backgrounded — doesn't touch
+    // running/revealTriggered/flashFrame state, just stops/resumes scheduling
+    // so the animation continues from exactly where it left off.
+    const handleVisibility = () => {
+      if (document.hidden) {
+        paused = true
+        cancelAnimationFrame(animId)
+      } else if (paused && running) {
+        paused = false
+        animId = requestAnimationFrame(tick)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      cancelAnimationFrame(animId); clearTimeout(stopTimer); clearTimeout(autoRevealTimer); running=false
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [src, width, height, colorTheme])
 
   useEffect(() => { stopRainRef.current?.() }, [theme, colorTheme])

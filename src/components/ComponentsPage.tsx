@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Wrench, X } from 'lucide-react'
 import { useRouter } from '../contexts/RouterContext'
 import { useConsole } from '../contexts/ConsoleContext'
-import D3Demo               from './demos/D3Demo'
-import D3DrilldownDemo      from './demos/D3DrilldownDemo'
-import D3PivotDemo          from './demos/D3PivotDemo'
-import D3DonutDemo          from './demos/D3DonutDemo'
-import GridLayoutDemo       from './demos/GridLayoutDemo'
+const D3Demo               = lazy(() => import('./demos/D3Demo'))
+const D3DrilldownDemo      = lazy(() => import('./demos/D3DrilldownDemo'))
+const D3PivotDemo          = lazy(() => import('./demos/D3PivotDemo'))
+const D3DonutDemo          = lazy(() => import('./demos/D3DonutDemo'))
+const GridLayoutDemo       = lazy(() => import('./demos/GridLayoutDemo'))
 
 type DemoId = 'dataviz' | 'dashboard'
 type D3Tab  = 'charts' | 'drilldown' | 'pivot' | 'donut'
@@ -176,10 +176,12 @@ export default function ComponentsPage() {
         </header>
 
         <div className="lab-main__demo" aria-live="polite">
-          {activeId === 'dataviz' && activeTab && (
-            <D3TabPanel tab={activeTab} />
-          )}
-          {activeId === 'dashboard' && <GridLayoutDemo />}
+          <Suspense fallback={<div className="lab-demo-loading">Loading…</div>}>
+            {activeId === 'dataviz' && activeTab && (
+              <D3TabPanel tab={activeTab} />
+            )}
+            {activeId === 'dashboard' && <GridLayoutDemo />}
+          </Suspense>
         </div>
       </main>
 

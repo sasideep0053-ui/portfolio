@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { FlaskConical, X, ChevronDown } from 'lucide-react'
 import { useRouter } from '../contexts/RouterContext'
 import { useConsole } from '../contexts/ConsoleContext'
-import TelematicsDemo       from './demos/TelematicsDemo'
-import SpeechVisualizerDemo from './demos/SpeechVisualizerDemo'
-import DroneDemo            from './demos/DroneDemo'
-import GaltonDemo           from './demos/GaltonDemo'
-import ThreeSceneDemo       from './demos/ThreeSceneDemo'
-import RecoDemo             from './demos/RecoDemo'
-import RagDemo              from './demos/RagDemo'
+const TelematicsDemo       = lazy(() => import('./demos/TelematicsDemo'))
+const SpeechVisualizerDemo = lazy(() => import('./demos/SpeechVisualizerDemo'))
+const DroneDemo            = lazy(() => import('./demos/DroneDemo'))
+const GaltonDemo           = lazy(() => import('./demos/GaltonDemo'))
+const ThreeSceneDemo       = lazy(() => import('./demos/ThreeSceneDemo'))
+const RecoDemo             = lazy(() => import('./demos/RecoDemo'))
+const RagDemo              = lazy(() => import('./demos/RagDemo'))
 
 type DemoId = 'drive-score' | 'speech' | 'drone' | 'galton' | 'scene' | 'reco' | 'rag'
 
@@ -251,7 +251,9 @@ export default function LabPage() {
           aria-live="polite"
           aria-label={`${activeLabel} demo`}
         >
-          {getComponent(activeId)}
+          <Suspense fallback={<div className="lab-demo-loading">Loading…</div>}>
+            {getComponent(activeId)}
+          </Suspense>
         </div>
       </main>
 
