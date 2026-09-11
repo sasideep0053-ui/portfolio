@@ -1,15 +1,18 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from 'react'
 
-interface NavCtx {
-  activeId:    string
+interface NavActions {
   setActive:   (id: string) => void
   registerRef: (id: string, el: HTMLElement | null) => void
   scrollTo:    (id: string) => void
 }
 
-const Ctx = createContext<NavCtx>({
-  activeId: '', setActive: () => {}, registerRef: () => {}, scrollTo: () => {},
+// Split into two contexts so that section components only registering a ref
+// (About, Skills, EngineeringLab, Contact via useNavSection) don't re-render
+// on every scroll tick — only ScrollNav actually needs the live activeId.
+const ActionsCtx = createContext<NavActions>({
+  setActive: () => {}, registerRef: () => {}, scrollTo: () => {},
 })
+const ActiveCtx = createContext('')
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const refs = useRef(new Map<string, HTMLElement>())
@@ -68,11 +71,19 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     refs.current.get(id)?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
+  // setActive/registerRef/scrollTo are all stable (useCallback, empty deps),
+  // so this object's identity never changes across re-renders — consumers of
+  // just the actions never re-render when activeId changes.
+  const actions = useMemo(() => ({ setActive, registerRef, scrollTo }), [setActive, registerRef, scrollTo])
+
   return (
-    <Ctx.Provider value={{ activeId, setActive, registerRef, scrollTo }}>
-      {children}
-    </Ctx.Provider>
+    <ActionsCtx.Provider value={actions}>
+      <ActiveCtx.Provider value={activeId}>
+        {children}
+      </ActiveCtx.Provider>
+    </ActionsCtx.Provider>
   )
 }
 
-export const useNavigation = () => useContext(Ctx)
+export const useNavActions    = () => useContext(ActionsCtx)
+export const useActiveSection = () => useContext(ActiveCtx)

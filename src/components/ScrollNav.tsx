@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigation } from '../contexts/NavigationContext'
+import { useNavActions, useActiveSection } from '../contexts/NavigationContext'
 import { useLocale } from '../contexts/LocaleContext'
 
 const SECTIONS = [
@@ -10,7 +10,8 @@ const SECTIONS = [
 ]
 
 export default function ScrollNav() {
-  const { activeId, scrollTo } = useNavigation()
+  const activeId = useActiveSection()
+  const { scrollTo } = useNavActions()
   const { strings } = useLocale()
   const [hovered, setHovered] = useState<string | null>(null)
 

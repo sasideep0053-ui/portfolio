@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RESUME } from '../data/resume'
-import { useNavigation } from '../contexts/NavigationContext'
+import { useNavActions } from '../contexts/NavigationContext'
 import { useRouter } from '../contexts/RouterContext'
 import MatrixPortrait from './MatrixPortrait'
 import { devLog } from '../lib/devLog'
@@ -18,7 +18,7 @@ function useClock() {
 }
 
 export default function Hero() {
-  const { scrollTo } = useNavigation()
+  const { scrollTo } = useNavActions()
   const { navigate } = useRouter()
   const clock = useClock()
 

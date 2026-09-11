@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { useNavigation } from '../contexts/NavigationContext'
+import { useNavActions } from '../contexts/NavigationContext'
 
 export function useNavSection<T extends HTMLElement = HTMLElement>(id: string) {
   const ref = useRef<T>(null)
-  const { registerRef } = useNavigation()
+  const { registerRef } = useNavActions()
 
   useEffect(() => {
     const el = ref.current
