@@ -548,6 +548,7 @@ export default function DroneDemo() {
   const [liveErr,  setLiveErr]  = useState(0.0)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const chartRef  = useRef<HTMLCanvasElement>(null)
 
   // PID drone physics refs
@@ -586,7 +587,7 @@ export default function DroneDemo() {
   // Theme color only actually changes when the theme (accent) changes — cache
   // it here instead of re-querying the DOM every animation frame in draw().
   useEffect(() => {
-    const root  = document.querySelector('.theme-root') as HTMLElement | null
+    const root  = wrapperRef.current?.closest('.theme-root') as HTMLElement | null
     const style = root ? getComputedStyle(root) : null
     bgColorRef.current = style?.getPropertyValue('--bg').trim() || '#03050d'
   }, [accent, theme])
@@ -802,7 +803,7 @@ export default function DroneDemo() {
   }, [showHow])
 
   return (
-    <div style={{ fontFamily: 'var(--font)', maxWidth: 860 }}>
+    <div ref={wrapperRef} style={{ fontFamily: 'var(--font)', maxWidth: 860 }}>
 
       {/* Header tabs + status */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

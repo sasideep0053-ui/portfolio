@@ -529,6 +529,7 @@ export default function GaltonDemo() {
   const [biasCurve,   setBiasCurve]   = useState<TheoPoint[]>(() => mkTheo(ROWS_DEF, 0.5))
 
   const canvasRef      = useRef<HTMLCanvasElement>(null)
+  const wrapperRef     = useRef<HTMLDivElement>(null)
   const rafRef         = useRef(0)
   const beadsRef       = useRef<BeadPath[]>([])
   const fairCountsRef  = useRef<number[]>(new Array(ROWS_DEF + 1).fill(0))
@@ -560,7 +561,7 @@ export default function GaltonDemo() {
   // Theme colors only actually change when the theme (accent) changes — cache
   // them here instead of re-querying the DOM every animation frame in draw().
   useEffect(() => {
-    const root  = document.querySelector('.theme-root') as HTMLElement | null
+    const root  = wrapperRef.current?.closest('.theme-root') as HTMLElement | null
     const style = root ? getComputedStyle(root) : null
     bgColorRef.current      = style?.getPropertyValue('--bg').trim()      || '#03050d'
     surfaceColorRef.current = style?.getPropertyValue('--surface').trim() || '#070b14'
@@ -813,7 +814,7 @@ export default function GaltonDemo() {
       ]
 
   return (
-    <div style={{ fontFamily: 'var(--font)', maxWidth: 860 }}>
+    <div ref={wrapperRef} style={{ fontFamily: 'var(--font)', maxWidth: 860 }}>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.75rem' }}>
